@@ -1,12 +1,14 @@
 // Motor Driver Pin Definitions
-#define EN_A 11  // PWM speed control for right
 #define motor1Pin1 6   // Control pin for second motor
 #define motor1Pin2 7   // Control pin for second motor
 //left motor
+
 #define motor2Pin1 8   // Control pin for first motor
 #define motor2Pin2 9   // Control pin for first motor
 //right method
+
 #define EN_B 10  // PWM speed control for left
+#define EN_A 11  // PWM speed control for right
 
 // Motor speed (adjustable between 0-255)
 int motorSpeed = 150;  // 150 is about 60% speed
@@ -16,9 +18,9 @@ int motorSpeed = 150;  // 150 is about 60% speed
 // change the pin values for light sensor
 #define S0 2;
 #define S1 3;
-#define S2 4;
-#define S3 5;
-#define sensorOut 8;
+#define S2 5;
+#define S3 4;
+#define sensorOut 12;
 
 int red = 0, green = 0, blue = 0;
 
@@ -34,12 +36,13 @@ boolean black_second_time = True;
 void color_setup() {
     pinMode(S0, OUTPUT);
     pinMode(S1, OUTPUT);
-    digitalWrite(S0, HIGH);
-    digitalWrite(S1, LOW);
 
     pinMode(S2, OUTPUT);
     pinMode(S3, OUTPUT);
     pinMode(sensorOut, INPUT);
+
+    digitalWrite(S0, HIGH);
+    digitalWrite(S1, LOW);
 
     Serial.begin(9600);
 }
@@ -164,20 +167,9 @@ void stopMotors() {
 
 String get_color() {
 
-    // Read Red
-    digitalWrite(S2, LOW);
-    digitalWrite(S3, LOW);
-    red = pulseIn(sensorOut, LOW);
-
-    // Read Green
-    digitalWrite(S2, HIGH);
-    digitalWrite(S3, HIGH);
-    green = pulseIn(sensorOut, LOW);
-
-    // Read Blue
-    digitalWrite(S2, LOW);
-    digitalWrite(S3, HIGH);
-    blue = pulseIn(sensorOut, LOW);
+    red = getColorReading(LOW, LOW); // Read Red
+    green = getColorReading(HIGH, HIGH); // Read Green
+    blue = getColorReading(LOW, HIGH); // Read Blue
 
     Serial.print("Red: ");
     Serial.print(red);
@@ -189,29 +181,22 @@ String get_color() {
     String color = identifyColor(red, green, blue);
     return color;
 
-    delay(200);
+    delay(500);
 
 }
 
 String identifyColor(int r, int g, int b) {
-    if (r < g && r < b) {
-        return "RED";
-    } 
-    else if (g < r && g < b) {
-        return "GREEN";
-    } 
-    else if (b < r && b < g) {
-        return "BLUE";
-    } 
-    else if (r > 200 && g > 200 && b > 200) {
-        return "WHITE";
-    } 
-    else if (r < 50 && g < 50 && b < 50) {
-        return "BLACK";
-    } 
-    else {
-        return "UNKNOWN";
-    }
+    if (r < g - 15 && r < b - 15) return "RED";
+    else if (g < r - 15 && g < b - 15) return "GREEN";
+    else if (b < r - 15 && b < g - 15) return "BLUE";
+    else return "BLACK";  // Default to BLACK if not RED, GREEN, or BLUE
+
+int getColorReading(int s2State, int s3State) {
+    digitalWrite(S2, s2State);
+    digitalWrite(S3, s3State);
+    delay(100);  // Allow sensor to settle
+    return pulseIn(sensorOut, LOW);  // Measure pulse duration
+}
 
 boolean detect_wall(int distance) {
      if (distance > 0 && distance <= WALL_DISTANCE_THRESHOLD) {
