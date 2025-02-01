@@ -1,9 +1,16 @@
-const int EN_A = 11; //Enable pin for first motor
-const int IN1 = 9; //control pin for first motor
-const int IN2 = 8; //control pin for first motor
-const int IN3 = 7; //control pin for second motor
-const int IN4 = 6; //control pin for second motor
-const int EN_B = 10; //Enable pin for second motor
+// Motor Driver Pin Definitions
+#define EN_A 11  // PWM speed control for right
+#define motor1Pin1 6   // Control pin for second motor
+#define motor1Pin2 7   // Control pin for second motor
+//left motor
+#define motor2Pin1 8   // Control pin for first motor
+#define motor2Pin2 9   // Control pin for first motor
+//right method
+#define EN_B 10  // PWM speed control for left
+
+// Motor speed (adjustable between 0-255)
+int motorSpeed = 150;  // 150 is about 60% speed
+
 # https://www.instructables.com/Running-DC-Motor-With-Arduino-Using-L298N-Motor-Dr/
 
 // change the pin values for light sensor
@@ -28,7 +35,7 @@ void color_setup() {
     Serial.begin(9600);
 }
 
-void setup() {
+void motor_setup() {
     pinMode(motor1Pin1, OUTPUT);
     pinMode(motor1Pin2, OUTPUT);
     pinMode(motor2Pin1, OUTPUT);
@@ -36,7 +43,7 @@ void setup() {
     Serial.begin(9600);
 }
 
-void loop() {
+void base_move() {
     if (Serial.available() > 0) {
         char command = Serial.read();
         if (command == 'F') { // Move Forward
