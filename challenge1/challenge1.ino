@@ -1,7 +1,10 @@
-const int motor1Pin1 = 9;  // Motor 1 forward
-const int motor1Pin2 = 10; // Motor 1 backward
-const int motor2Pin1 = 5;  // Motor 2 forward
-const int motor2Pin2 = 6;  // Motor 2 backward
+const int EN_A = 11; //Enable pin for first motor
+const int IN1 = 9; //control pin for first motor
+const int IN2 = 8; //control pin for first motor
+const int IN3 = 7; //control pin for second motor
+const int IN4 = 6; //control pin for second motor
+const int EN_B = 10; //Enable pin for second motor
+# https://www.instructables.com/Running-DC-Motor-With-Arduino-Using-L298N-Motor-Dr/
 
 // change the pin values for light sensor
 #define S0 4;
