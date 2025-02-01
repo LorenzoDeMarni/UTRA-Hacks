@@ -10,13 +10,7 @@ void setup() {
     pinMode(motor2Pin2, OUTPUT);
     Serial.begin(9600);
 }
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-lorenzo test
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
+
 void loop() {
     if (Serial.available() > 0) {
         char command = Serial.read();
