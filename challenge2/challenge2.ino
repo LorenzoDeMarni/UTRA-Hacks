@@ -89,31 +89,34 @@ void loop() {
     String current_color = get_color();
 
     if (current_color == "RED") {
+        if (black_second_time == True) {
+            black_second_time = False;
+        }
         turnRight();
         turnRight();
-        black_second_time = False;
         loop();
     }
 
     else if (current_color == "BLUE") {
+        if (black_second_time == True) {
+            black_second_time = False;
+        }
         turnLeft();
-        black_second_time = False;
         loop();
     }
 
     else if (current_color == "GREEN") {
+        if (black_second_time == True) {
+            black_second_time = False;
+        }
         turnRight();
-        black_second_time = False;
         loop();
     }
 
     else if (current_color == "BLACK" && black_second_time == False) {
-        moveForward();
-        loop();
+        stopMotors();
+        break;
     }
-
-
-    
 
 }
 
