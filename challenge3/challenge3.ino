@@ -84,9 +84,9 @@ String readColor() {
     digitalWrite(S3, HIGH);
     int blue = pulseIn(sensorOut, LOW);
     
-    if (red < green && red < blue) return "Red";
-    else if (green < red && green < blue) return "Green";
-    else if (blue < red && blue < green) return "Blue";
+    if (red > green && red > blue) return "Red";
+    else if (green > red && green > blue) return "Green";
+    else if (blue > red && blue > green) return "Blue";
     
     return "Unknown";
 }
