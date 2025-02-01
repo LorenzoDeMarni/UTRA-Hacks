@@ -20,26 +20,67 @@ void setup() {
 
     Serial.begin(9600);
     Serial.println("Motor System Initialized");
-        // Move both motors forward
+    
+}
+
+void loop() {
+    // Move forward for 2 seconds
+    moveForward(2000);
+    // Turn left for 1 second
+    turnLeft(1000);
+    // Move forward for 2 seconds
+    moveForward(2000);
+    // Turn right for 1 second
+    turnRight(1000);
+    // Move forward for 2 seconds
+    moveForward(2000);
+    // Stop motors for 1 second
+    stopMotors();
+    delay(1000);
+    break;
+
+}
+
+void moveForward(int duration) {
     Serial.println("Moving Forward...");
     analogWrite(EN_A, motorSpeed); // Set speed
     analogWrite(EN_B, motorSpeed);
     digitalWrite(motor1Pin1, HIGH);
     digitalWrite(motor1Pin2, LOW);
-    // digitalWrite(motor2Pin1, HIGH);
-    // digitalWrite(motor2Pin2, LOW);
-    delay(2000);
+    digitalWrite(motor2Pin1, HIGH);
+    digitalWrite(motor2Pin2, LOW);
+    delay(duration);
+    stopMotors();
+}
 
+void turnLeft(int duration) {
+    Serial.println("Turning Left...");
+    analogWrite(EN_A, motorSpeed); // Set speed
+    analogWrite(EN_B, motorSpeed);
+    digitalWrite(motor1Pin1, LOW);
+    digitalWrite(motor1Pin2, HIGH);
+    digitalWrite(motor2Pin1, HIGH);
+    digitalWrite(motor2Pin2, LOW);
+    delay(duration);
+    stopMotors();
+}
 
-    // Stop motors again
+void turnRight(int duration) {
+    Serial.println("Turning Right...");
+    analogWrite(EN_A, motorSpeed); // Set speed
+    analogWrite(EN_B, motorSpeed);
+    digitalWrite(motor1Pin1, HIGH);
+    digitalWrite(motor1Pin2, LOW);
+    digitalWrite(motor2Pin1, LOW);
+    digitalWrite(motor2Pin2, HIGH);
+    delay(duration);
+    stopMotors();
+}
+
+void stopMotors() {
     Serial.println("Stopping Motors...");
     digitalWrite(motor1Pin1, LOW);
     digitalWrite(motor1Pin2, LOW);
-    // digitalWrite(motor2Pin1, LOW);
-    // digitalWrite(motor2Pin2, LOW);
-    delay(1000);
-}
-
-void loop() {
-
+    digitalWrite(motor2Pin1, LOW);
+    digitalWrite(motor2Pin2, LOW);
 }
