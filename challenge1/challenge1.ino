@@ -25,7 +25,7 @@ void color_setup() {
     Serial.begin(9600);
 }
 
-void get_color() {
+String get_color() {
 
     digitalWrite(S2, LOW);
     digitalWrite(S3, LOW);
@@ -48,30 +48,31 @@ void get_color() {
     Serial.print("  Blue: ");
     Serial.println(blue);
 
-    identifyColor(red, green, blue);
+    String color = identifyColor(red, green, blue);
+    return color;
 
     delay(200);
 
 }
 
-void identifyColor(int r, int g, int b) {
+String identifyColor(int r, int g, int b) {
     if (r < g && r < b) {
-        Serial.println("Detected Color: RED");
+        return "RED";
     } 
     else if (g < r && g < b) {
-        Serial.println("Detected Color: GREEN");
+        return "GREEN";
     } 
     else if (b < r && b < g) {
-        Serial.println("Detected Color: BLUE");
+        return "BLUE";
     } 
     else if (r > 200 && g > 200 && b > 200) {
-        Serial.println("Detected Color: WHITE");
+        return "WHITE";
     } 
     else if (r < 50 && g < 50 && b < 50) {
-        Serial.println("Detected Color: BLACK");
+        return "BLACK";
     } 
     else {
-        Serial.println("Detected Color: UNKNOWN");
+        return "UNKNOWN";
     }
 
 void setup() {
