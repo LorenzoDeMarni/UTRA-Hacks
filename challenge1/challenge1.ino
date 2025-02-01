@@ -3,6 +3,77 @@ const int motor1Pin2 = 10; // Motor 1 backward
 const int motor2Pin1 = 5;  // Motor 2 forward
 const int motor2Pin2 = 6;  // Motor 2 backward
 
+// change the pin values for light sensor
+#define S0 4;
+#define S1 5;
+#define S2 6;
+#define S3 7;
+#define sensorOut 8;
+
+int red = 0, green = 0, blue = 0;
+
+void color_setup() {
+    pinMode(S0, OUTPUT);
+    pinMode(S1, OUTPUT);
+    digitalWrite(S0, HIGH);
+    digitalWrite(S1, LOW);
+
+    pinMode(S2, OUTPUT);
+    pinMode(S3, OUTPUT);
+    pinMode(sensorOut, INPUT);
+
+    Serial.begin(9600);
+}
+
+void get_color() {
+
+    digitalWrite(S2, LOW);
+    digitalWrite(S3, LOW);
+    red = pulseIn(sensorOut, LOW);
+
+    // Read Green
+    digitalWrite(S2, HIGH);
+    digitalWrite(S3, HIGH);
+    green = pulseIn(sensorOut, LOW);
+
+    // Read Blue
+    digitalWrite(S2, LOW);
+    digitalWrite(S3, HIGH);
+    blue = pulseIn(sensorOut, LOW);
+
+    Serial.print("Red: ");
+    Serial.print(red);
+    Serial.print("  Green: ");
+    Serial.print(green);
+    Serial.print("  Blue: ");
+    Serial.println(blue);
+
+    identifyColor(red, green, blue);
+
+    delay(200);
+
+}
+
+void identifyColor(int r, int g, int b) {
+    if (r < g && r < b) {
+        Serial.println("Detected Color: RED");
+    } 
+    else if (g < r && g < b) {
+        Serial.println("Detected Color: GREEN");
+    } 
+    else if (b < r && b < g) {
+        Serial.println("Detected Color: BLUE");
+    } 
+    else if (r > 200 && g > 200 && b > 200) {
+        Serial.println("Detected Color: WHITE");
+    } 
+    else if (r < 50 && g < 50 && b < 50) {
+        Serial.println("Detected Color: BLACK");
+    } 
+    else {
+        Serial.println("Detected Color: UNKNOWN");
+    }
+
 void setup() {
     pinMode(motor1Pin1, OUTPUT);
     pinMode(motor1Pin2, OUTPUT);
@@ -27,3 +98,5 @@ void loop() {
         }
     }
 }
+
+
