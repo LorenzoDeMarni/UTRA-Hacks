@@ -10,7 +10,7 @@ void setup() {
     pinMode(motor2Pin2, OUTPUT);
     Serial.begin(9600);
 }
-test
+test2
 void loop() {
     if (Serial.available() > 0) {
         char command = Serial.read();
