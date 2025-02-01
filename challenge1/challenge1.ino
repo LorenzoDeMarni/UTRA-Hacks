@@ -24,63 +24,91 @@ void setup() {
 }
 
 void loop() {
-    // Move forward for 2 seconds
-    moveForward(2000);
-    // Turn left for 1 second
-    turnLeft(1000);
-    // Move forward for 2 seconds
-    moveForward(2000);
-    // Turn right for 1 second
-    turnRight(1000);
-    // Move forward for 2 seconds
-    moveForward(2000);
-    // Stop motors for 1 second
-    stopMotors();
-    delay(1000);
-    break;
+    if (Serial.available() > 0) {
+        char command = Serial.read();
+        if (command == 'F') { // Move Forward
+            digitalWrite(motor1Pin1, HIGH);
+            digitalWrite(motor1Pin2, LOW);
+            digitalWrite(motor2Pin1, HIGH);
+            digitalWrite(motor2Pin2, LOW);
+        } else if (command == 'S') { // Stop
+            digitalWrite(motor1Pin1, LOW);
+            digitalWrite(motor1Pin2, LOW);
+            digitalWrite(motor2Pin1, LOW);
+            digitalWrite(motor2Pin2, LOW);
+        }
+    }
+    
+    // figure out where first colour is and start timer
+    // keep going till hit black and stop timer
+    // 180* turn, go halfway
+    // 90* turn right and go straight till hit black
+    // 180* turn , go till hit black
+    // 180* turn, and go halfway
+    // plant flag including offset
+}
+
+void color_setup() {
+    pinMode(S0, OUTPUT);
+    pinMode(S1, OUTPUT);
+    digitalWrite(S0, HIGH);
+    digitalWrite(S1, LOW);
+
+    pinMode(S2, OUTPUT);
+    pinMode(S3, OUTPUT);
+    pinMode(sensorOut, INPUT);
+
+    Serial.begin(9600);
+}
+
+String get_color() {
+
+    digitalWrite(S2, LOW);
+    digitalWrite(S3, LOW);
+    red = pulseIn(sensorOut, LOW);
+
+    // Read Green
+    digitalWrite(S2, HIGH);
+    digitalWrite(S3, HIGH);
+    green = pulseIn(sensorOut, LOW);
+
+    // Read Blue
+    digitalWrite(S2, LOW);
+    digitalWrite(S3, HIGH);
+    blue = pulseIn(sensorOut, LOW);
+
+    Serial.print("Red: ");
+    Serial.print(red);
+    Serial.print("  Green: ");
+    Serial.print(green);
+    Serial.print("  Blue: ");
+    Serial.println(blue);
+
+    String color = identifyColor(red, green, blue);
+    return color;
+
+    delay(200);
 
 }
 
-void moveForward(int duration) {
-    Serial.println("Moving Forward...");
-    analogWrite(EN_A, motorSpeed); // Set speed
-    analogWrite(EN_B, motorSpeed);
-    digitalWrite(motor1Pin1, HIGH);
-    digitalWrite(motor1Pin2, LOW);
-    digitalWrite(motor2Pin1, HIGH);
-    digitalWrite(motor2Pin2, LOW);
-    delay(duration);
-    stopMotors();
-}
+String identifyColor(int r, int g, int b) {
+    if (r < g && r < b) {
+        return "RED";
+    } 
+    else if (g < r && g < b) {
+        return "GREEN";
+    } 
+    else if (b < r && b < g) {
+        return "BLUE";
+    } 
+    else if (r > 200 && g > 200 && b > 200) {
+        return "WHITE";
+    } 
+    else if (r < 50 && g < 50 && b < 50) {
+        return "BLACK";
+    } 
+    else {
+        return "UNKNOWN";
+    }
 
-void turnLeft(int duration) {
-    Serial.println("Turning Left...");
-    analogWrite(EN_A, motorSpeed); // Set speed
-    analogWrite(EN_B, motorSpeed);
-    digitalWrite(motor1Pin1, LOW);
-    digitalWrite(motor1Pin2, HIGH);
-    digitalWrite(motor2Pin1, HIGH);
-    digitalWrite(motor2Pin2, LOW);
-    delay(duration);
-    stopMotors();
-}
 
-void turnRight(int duration) {
-    Serial.println("Turning Right...");
-    analogWrite(EN_A, motorSpeed); // Set speed
-    analogWrite(EN_B, motorSpeed);
-    digitalWrite(motor1Pin1, HIGH);
-    digitalWrite(motor1Pin2, LOW);
-    digitalWrite(motor2Pin1, LOW);
-    digitalWrite(motor2Pin2, HIGH);
-    delay(duration);
-    stopMotors();
-}
-
-void stopMotors() {
-    Serial.println("Stopping Motors...");
-    digitalWrite(motor1Pin1, LOW);
-    digitalWrite(motor1Pin2, LOW);
-    digitalWrite(motor2Pin1, LOW);
-    digitalWrite(motor2Pin2, LOW);
-}
