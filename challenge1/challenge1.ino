@@ -11,7 +11,10 @@ void setup() {
     Serial.begin(9600);
 }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 lorenzo test
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 void loop() {
