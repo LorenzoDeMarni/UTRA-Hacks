@@ -7,10 +7,10 @@ const int EN_B = 10; //Enable pin for second motor
 # https://www.instructables.com/Running-DC-Motor-With-Arduino-Using-L298N-Motor-Dr/
 
 // change the pin values for light sensor
-#define S0 4;
-#define S1 5;
-#define S2 6;
-#define S3 7;
+#define S0 2;
+#define S1 3;
+#define S2 4;
+#define S3 5;
 #define sensorOut 8;
 
 int red = 0, green = 0, blue = 0;
@@ -28,8 +28,34 @@ void color_setup() {
     Serial.begin(9600);
 }
 
+void setup() {
+    pinMode(motor1Pin1, OUTPUT);
+    pinMode(motor1Pin2, OUTPUT);
+    pinMode(motor2Pin1, OUTPUT);
+    pinMode(motor2Pin2, OUTPUT);
+    Serial.begin(9600);
+}
+
+void loop() {
+    if (Serial.available() > 0) {
+        char command = Serial.read();
+        if (command == 'F') { // Move Forward
+            digitalWrite(motor1Pin1, HIGH);
+            digitalWrite(motor1Pin2, LOW);
+            digitalWrite(motor2Pin1, HIGH);
+            digitalWrite(motor2Pin2, LOW);
+        } else if (command == 'S') { // Stop
+            digitalWrite(motor1Pin1, LOW);
+            digitalWrite(motor1Pin2, LOW);
+            digitalWrite(motor2Pin1, LOW);
+            digitalWrite(motor2Pin2, LOW);
+        }
+    }
+}
+
 String get_color() {
 
+    // Read Red
     digitalWrite(S2, LOW);
     digitalWrite(S3, LOW);
     red = pulseIn(sensorOut, LOW);
@@ -77,30 +103,3 @@ String identifyColor(int r, int g, int b) {
     else {
         return "UNKNOWN";
     }
-
-void setup() {
-    pinMode(motor1Pin1, OUTPUT);
-    pinMode(motor1Pin2, OUTPUT);
-    pinMode(motor2Pin1, OUTPUT);
-    pinMode(motor2Pin2, OUTPUT);
-    Serial.begin(9600);
-}
-
-void loop() {
-    if (Serial.available() > 0) {
-        char command = Serial.read();
-        if (command == 'F') { // Move Forward
-            digitalWrite(motor1Pin1, HIGH);
-            digitalWrite(motor1Pin2, LOW);
-            digitalWrite(motor2Pin1, HIGH);
-            digitalWrite(motor2Pin2, LOW);
-        } else if (command == 'S') { // Stop
-            digitalWrite(motor1Pin1, LOW);
-            digitalWrite(motor1Pin2, LOW);
-            digitalWrite(motor2Pin1, LOW);
-            digitalWrite(motor2Pin2, LOW);
-        }
-    }
-}
-
-
