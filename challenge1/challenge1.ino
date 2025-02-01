@@ -6,6 +6,7 @@
 #define motor2Pin2 9   // Control pin for first motor
 #define EN_B 10  // PWM speed control for motor 2
 
+
 // Motor speed (adjustable between 0-255)
 int motorSpeed = 150;  // 150 is about 60% speed
 

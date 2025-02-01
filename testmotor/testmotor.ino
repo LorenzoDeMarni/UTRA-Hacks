@@ -37,7 +37,6 @@ void loop() {
     // Stop motors for 1 second
     stopMotors();
     delay(1000);
-    break;
 
 }
 
