@@ -4,6 +4,7 @@ const int IN2 = 8; //control pin for first motor
 const int IN3 = 7; //control pin for second motor
 const int IN4 = 6; //control pin for second motor
 const int EN_B = 10; //Enable pin for second motor
+# https://www.instructables.com/Running-DC-Motor-With-Arduino-Using-L298N-Motor-Dr/
 
 void setup() {
     pinMode(motor1Pin1, OUTPUT);
