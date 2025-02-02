@@ -98,10 +98,10 @@ String detectColor() {
     green = getColorReading(HIGH, HIGH); // Read Blue
     blue = getColorReading(LOW, HIGH); // Read Green
 
-    if (r>600 && g>1000 & b>1000) return "Black"
-    else if (red < blue && red < green) return "Red";
-    else if (blue < red && blue < green) return "Blue";
-    else if (green < red && green < blue) return "Green";
+    if (red>600 && green>1000 & blue>1000) return "Black"
+    else if (red < blue - 15 && red < green - 15) return "Red";
+    else if (blue < red - 15 && blue < green - 15) return "Blue";
+    else if (green < red - 15 && green < blue - 15) return "Green";
     else return "Black";  // Default to "Black" if no color is dominant
 }
 
