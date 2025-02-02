@@ -84,9 +84,9 @@ String identifyColor(int r, int g, int b) {
     if (r < 300 && g < 300 && b < 300) return "BLACK";
 
     // Check for dominant color
-    if (r > g + 50 && r > b + 50) return "RED";
-    if (g > r + 50 && g > b + 50) return "GREEN";
-    if (b > r + 50 && b > g + 50) return "BLUE";
+    if (r > g + 50 && r > b + 50) return "GREEN";
+    if (g > r + 50 && g > b + 50) return "BLUE";
+    if (b > r + 50 && b > g + 50) return "RED";
 
     return "BLACK";  // Default to BLACK if no dominant color
 }
@@ -116,8 +116,8 @@ String getStableColor() {
     // Return the most frequent color (only if it appears in at least 50% of the queue)
     int majorityThreshold = QUEUE_SIZE / 2;
     
-    if (redCount > majorityThreshold) return "RED";
-    if (greenCount > majorityThreshold) return "GREEN";
-    if (blueCount > majorityThreshold) return "BLUE";
+    if (redCount > majorityThreshold) return "GREEN";
+    if (greenCount > majorityThreshold) return "BLUE";
+    if (blueCount > majorityThreshold) return "RED";
     return "BLACK";  // Default to BLACK if no majority
 }
