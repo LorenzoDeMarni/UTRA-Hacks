@@ -28,8 +28,10 @@ int motorSpeedRight = 150;
 #define sensorOut 12;
 
 int red = 0, green = 0, blue = 0;
+String color = "";
+int counter = 0;
 
-#define turn_value 820
+#define turn_value 500
 
 #define longerRuntime 0
 unsigned long startTime = 0; // Stores the start time
@@ -72,40 +74,25 @@ void loop() {
     green = getColorReading(HIGH, HIGH); // Read Green
     blue = getColorReading(LOW, HIGH); // Read Blue
 
+    
     String colorNew = identifyColor(red, green, blue);
 
-    while (colorNew != "BLACK") { //keeps going forward till we detect black (not a color)
-        moveForward();
-        startTime = millis();  //we wanna track the time it takes to reach start to 'black' point
-        timerRunning = true;
-        Serial.println("Timer Started!");
-    }
-
-    stopTime = millis();
-    timerRunning = false;
-    elapsedTime = stopTime - startTime; //save travel time to a variable
-
-    if (elapsedTime > longerRuntime) {
-        longerRuntime = elapsedTime
-        turnLeft(); //need to make this a sharper turn with a parameter
-        loop();
-    }
-    //we want this if statement to check if the run time was longer than before. This will let us turn
-    //on a steeper angle (want to get to at least 180 90 is default)
-
-    else {
+    while (colorNew == "BLACK" || colorNew == color) {
         turnLeft();
-        turnLeft(); //do a 180
-        moveForward(); //make this parameter elapsedTime / 2 (midway through circle)
-        dropFlag();
-        while (true);
+        moveForward(500);
     }
-    //when we reach desired state, we can return on the same line traveled and drop the flag half way
-    //which should be the center
+
+    if(counter == 5) {
+        dropFlag();
+        while(true);
+    }
+    color = colorNew;
+    counter++;
+    loop();
 
 }
 
-void moveForward() {
+void moveForward(int dur) {
     Serial.println("Moving Forward...");
     analogWrite(EN_A, motorSpeedLeft); // Set speed
     analogWrite(EN_B, motorSpeedRight);
@@ -113,6 +100,8 @@ void moveForward() {
     digitalWrite(motor1Pin2, LOW);
     digitalWrite(motor2Pin1, HIGH);
     digitalWrite(motor2Pin2, LOW);
+    delay(dur);
+    stopMotors();
 }
 
 void turnLeft() {
@@ -179,27 +168,17 @@ void startUp() {
     green = getColorReading(HIGH, HIGH); // Read Green
     blue = getColorReading(LOW, HIGH); // Read Blue
 
-    String color = identifyColor(red, green, blue);
+    color = identifyColor(red, green, blue);
 
-    while(color != "BLACK") {
-        moveForward();
-        startTime = millis();
-        timerRunning = true;
-        Serial.println("Timer Started!");
+    while (color == "BLACK") {
+        moveForward(5000);
     }
 
-    stopTime = millis();
-    timerRunning = false;
-    longerRuntime = stopTime - startTime;
-
-    turnLeft();
-    String newColor = identifyColor(red, green, blue);
-
-    while(newColor == color || newColor == "BLACK") {
-        turnLeft();
-        delay(1000);
+    while (color != "BLACK") {
+        moveForward(2000);
     }
-    //we wanna keep spinning until we find a color that isnt the same as the ring we are on or black
-    //same logic as the loop function
+
     stopMotors();
+    delay(2000);
+    
 }
