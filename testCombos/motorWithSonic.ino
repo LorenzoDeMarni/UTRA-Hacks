@@ -56,7 +56,7 @@ void loop() {
     if (distance > 0 && distance <= WALL_DISTANCE_THRESHOLD) {
        stopMotors();
        delay(300);
-       tunrRight(700);
+       turnRight(700);
     } 
     else {
        Serial.println("aye u good bro");

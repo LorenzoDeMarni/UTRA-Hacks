@@ -56,12 +56,12 @@ void setup() {
     pinMode(motor2Pin2, OUTPUT);
     pinMode(EN_B, OUTPUT);
 
-    Serial.begin(9600);
     Serial.println("Motor System Initialized");
     
     //setup for sensor
     pinMode(TRIG_PIN, OUTPUT);
     pinMode(ECHO_PIN, INPUT);
+    Serial.println("Ultra sonic sensor Initialized");
     Serial.begin(9600);
 }
 
