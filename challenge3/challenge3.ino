@@ -125,12 +125,13 @@ void loop() {
     Serial.println(stableColor);
     blinkLED();
     currentColorIndex++;
-
+ 
     // Check if we have detected the last BLUE
     if (currentColorIndex == 5) {
         Serial.println("🚀 Sequence Completed! Stopping Robot.");
         stopMotors();
         sequenceCompleted = true;
+        while(true); //stop the infinite loop
     }
 }
 
