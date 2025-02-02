@@ -25,7 +25,7 @@ String colorSamples[SAMPLE_SIZE];  // Store 5 color readings
 // Function to move forward
 void moveForward(int speed) {
     analogWrite(enA, speed);
-    analogWrite(enB, speed);
+    analogWrite(enB, speed+5);
     digitalWrite(in1, HIGH);
     digitalWrite(in2, LOW);
     digitalWrite(in3, HIGH);
@@ -35,7 +35,7 @@ void moveForward(int speed) {
 // Function to move backward
 void moveBackward(int speed) {
     analogWrite(enA, speed);
-    analogWrite(enB, speed);
+    analogWrite(enB, speed+5);
     digitalWrite(in1, LOW);
     digitalWrite(in2, HIGH);
     digitalWrite(in3, LOW);
@@ -45,7 +45,7 @@ void moveBackward(int speed) {
 // Function to turn left
 void turnLeft(int speed) {
     analogWrite(enA, speed);
-    analogWrite(enB, speed);
+    analogWrite(enB, speed+5);
     digitalWrite(in1, LOW);
     digitalWrite(in2, HIGH);
     digitalWrite(in3, HIGH);
@@ -56,7 +56,7 @@ void turnLeft(int speed) {
 // Function to turn right
 void turnRight(int speed) {
     analogWrite(enA, speed);
-    analogWrite(enB, speed);
+    analogWrite(enB, speed+5);
     digitalWrite(in1, HIGH);
     digitalWrite(in2, LOW);
     digitalWrite(in3, LOW);
@@ -154,7 +154,7 @@ void loop() {
 
     if (distance > 10) {
         Serial.println("Moving forward.");
-        moveForward(180);
+        moveForward(145);
     } 
     else {
         Serial.println("Wall detected! Stopping.");
@@ -177,16 +177,16 @@ void loop() {
         // **Decision-making based on color**
         if (detectedColor == "Red") {
             Serial.println("U-Turn");
-            turnLeft(180);
-            turnLeft(180);  // Ensures full U-Turn
+            turnLeft(145);
+            turnLeft(145);  // Ensures full U-Turn
         }
         else if (detectedColor == "Blue") {
             Serial.println("Turning Left");
-            turnLeft(180);
+            turnLeft(145);
         }
         else if (detectedColor == "Green") {
             Serial.println("Turning Right");
-            turnRight(180);
+            turnRight(145);
         }
         else {
             Serial.println("Black detected, stopping.");
