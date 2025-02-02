@@ -33,9 +33,17 @@ void setup() {
 }
 
 void loop() {
-    red = getColorReading(LOW, LOW); // Read Red
-    green = getColorReading(HIGH, HIGH); // Read Green
-    blue = getColorReading(LOW, HIGH); // Read Blue
+    red = getColorReading(LOW, LOW);  // Read Red
+    green = getColorReading(HIGH, HIGH);  // Read Green
+    blue = getColorReading(LOW, HIGH);  // Read Blue
+
+    // Print raw RGB values for debugging
+    Serial.print("Raw RGB Values -> R: ");
+    Serial.print(red);
+    Serial.print(" G: ");
+    Serial.print(green);
+    Serial.print(" B: ");
+    Serial.println(blue);
 
     String detectedColor = identifyColor(red, green, blue);
     
@@ -46,7 +54,7 @@ void loop() {
     // Get most frequent color from queue
     String stableColor = getStableColor();
 
-    // Print filtered color
+    // Print filtered stable color
     Serial.print("Stable Detected Color: ");
     Serial.println(stableColor);
 
@@ -57,15 +65,22 @@ void loop() {
 int getColorReading(int s2State, int s3State) {
     digitalWrite(S2, s2State);
     digitalWrite(S3, s3State);
-    delay(100);  // Allow sensor to settle
+    delay(25);  // Allow sensor to settle
     return pulseIn(sensorOut, LOW);  // Measure pulse duration
 }
 
 // Identifies the color based on RGB values
 String identifyColor(int r, int g, int b) {
-    if (r < g - 15 && r < b - 15) return "RED";
-    else if (g < r - 15 && g < b - 15) return "GREEN";
-    else if (b < r - 15 && b < g - 15) return "BLUE";
+    Serial.print("Processing Color -> R: ");
+    Serial.print(r);
+    Serial.print(" G: ");
+    Serial.print(g);
+    Serial.print(" B: ");
+    Serial.println(b);
+
+    if (r < g - 1000 && r < b - 500) return "RED";
+    else if (g < r - 25 && g < b - 25) return "GREEN";
+    else if (b < r - 200 && b < g - 50) return "BLUE";
     else return "BLACK";  // Default to BLACK if not RED, GREEN, or BLUE
 }
 
@@ -80,6 +95,16 @@ String getStableColor() {
         else if (colorQueue[i] == "BLUE") blueCount++;
         else if (colorQueue[i] == "BLACK") blackCount++;
     }
+
+    // Print occurrences for debugging
+    Serial.print("Color Counts -> R: ");
+    Serial.print(redCount);
+    Serial.print(" G: ");
+    Serial.print(greenCount);
+    Serial.print(" B: ");
+    Serial.print(blueCount);
+    Serial.print(" Black: ");
+    Serial.println(blackCount);
 
     // Return the most frequent color
     if (redCount >= greenCount && redCount >= blueCount && redCount >= blackCount) return "RED";
