@@ -48,6 +48,8 @@ unsigned long lastColorTime = 0;
 
 // ========== SETUP FUNCTION ==========
 void setup() {
+    // Setting random seed
+    randomSeed(analogRead(0));
     // Motor Setup
     pinMode(EN_A, OUTPUT);
     pinMode(EN_B, OUTPUT);
@@ -148,8 +150,8 @@ void loop() {
           Serial.println(detectedColor);
           blinkLED();
           currentColorIndex++;
-          mappedX[map_index] == x;
-          mappedY[map_index] == y;
+          mappedX[map_index] = x;
+          mappedY[map_index] = y;
           map_index += 1;
         }
 
@@ -163,23 +165,24 @@ void loop() {
       }
     }
     stopMotors();
-    int random = rand() % 2;
-    if (random == 1) {
-      turnRight(820);
-      int distRand = getWallDistance();
-      if(detect_wall(distance)) {
-        turnRight(1640);
-      }
-    }
-    else if (random == 0) {
-      turnLeft(820);
-      int distRand = getWallDistance();
-      if(detect_wall(distance)) {
-        turnLeft(1640);
-      }
-    }
     if (detect_wall(distance)) {
-      turnRight(820);
+      int random = rand() % 2;
+      if (random == 1) {
+        turnRight(820);
+        int distRand = getWallDistance();
+        if(detect_wall(distance)) {
+          turnRight(1640);
+          if(detect_wall(distance)) { turnRight(820); }
+        }
+      }
+      else if (random == 0) {
+        turnLeft(820);
+        int distRand = getWallDistance();
+        if(detect_wall(distance)) {
+          turnLeft(1640);
+          if(detect_wall(distance)) { turnLeft(820); }
+        }
+      }
     }
 
 
@@ -262,7 +265,7 @@ void turnRight(int duration) {
 void turnLeft(int duration) {
   Serial.println("turning to the left");
   analogWrite(EN_A, motorSpeedLeft);
-  analogWrite(EN_A, motorSpeedRight);
+  analogWrite(EN_B, motorSpeedRight);
   digitalWrite(motor1Pin1, LOW);
   digitalWrite(motor1Pin2, HIGH);
   digitalWrite(motor2Pin1, HIGH);
