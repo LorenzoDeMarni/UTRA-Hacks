@@ -111,8 +111,9 @@ void loop() {
     String stableColor = getStableColor();
 
     if (stableColor == "RED") {
-        if (black_second_time == True) {
-            black_second_time = False;
+        Serial.println("RED");
+        if (black_second_time == true) {
+            black_second_time = false;
         }
         turnRight();
         turnRight();
@@ -120,22 +121,24 @@ void loop() {
     }
 
     else if (stableColor == "BLUE") {
-        if (black_second_time == True) {
-            black_second_time = False;
+        Serial.println("BLUE");
+        if (black_second_time == true) {
+            black_second_time = false;
         }
         turnLeft();
         loop();
     }
 
     else if (stableColor == "GREEN") {
-        if (black_second_time == True) {
-            black_second_time = False;
+        Serial.println("GREEN");
+        if (black_second_time == true) {
+            black_second_time = false;
         }
         turnRight();
         loop();
     }
 
-    else if (stableColor == "BLACK" && black_second_time == False) {
+    else if (stableColor == "BLACK" && black_second_time == false) {
         stopMotors();
         while (true);
     }
