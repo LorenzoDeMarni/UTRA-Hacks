@@ -19,7 +19,7 @@ int red = 0, green = 0, blue = 0;
 const int trigPin = 12;
 const int echoPin = 11;
 
-#define SAMPLE_SIZE 10  // Number of samples for color detection
+#define SAMPLE_SIZE 7  // Number of samples for color detection
 String colorSamples[SAMPLE_SIZE];  // Store 5 color readings
 
 // Function to move forward
@@ -88,21 +88,21 @@ long getDistance() {
 int getColorReading(int s2State, int s3State) {
     digitalWrite(S2, s2State);
     digitalWrite(S3, s3State);
-    delay(75);  // Allow sensor to settle
+    delay(25);  // Allow sensor to settle
     return pulseIn(sensorOut, LOW);  // Measure pulse duration
 }
 
 // Function to detect color using the TCS3200 sensor
 String detectColor() {
     red = getColorReading(LOW, LOW);    // Read Red
-    blue = getColorReading(HIGH, HIGH); // Read Blue
-    green = getColorReading(LOW, HIGH); // Read Green
+    green = getColorReading(HIGH, HIGH); // Read Blue
+    blue = getColorReading(LOW, HIGH); // Read Green
 
-    if (red < blue && red < green) return "Red";
-    if (blue < red && blue < green) return "Blue";
-    if (green < red && green < blue) return "Green";
-
-    return "Black";  // Default to "Black" if no color is dominant
+    if (r>600 && g>1000 & b>1000) return "Black"
+    else if (red < blue && red < green) return "Red";
+    else if (blue < red && blue < green) return "Blue";
+    else if (green < red && green < blue) return "Green";
+    else return "Black";  // Default to "Black" if no color is dominant
 }
 
 // Function to find the mode (most frequent color) in an array
@@ -173,7 +173,7 @@ void loop() {
         // **Take 5 color samples and store them**
         for (int i = 0; i < SAMPLE_SIZE; i++) {
             colorSamples[i] = detectColor();
-            delay(100);  // Small delay between readings
+            delay(150);  // Small delay between readings
         }
 
         // **Find the most common color**
