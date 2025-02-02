@@ -37,6 +37,7 @@ int dir = 1; // 1 = +y, 2 = +x, 3 = -y, 4 = -x
 
 // ========== LED ==========
 #define LED_PIN A2
+#define LED_EXTRA_PIN A0
 
 // ========== COLOR DETECTION FILTER ==========
 #define QUEUE_SIZE 7
@@ -68,6 +69,7 @@ void setup() {
 
     // LED Setup
     pinMode(LED_PIN, OUTPUT);
+    pinMode(LED_EXTRA_PIN, OUTPUT);
 
     // Color Sensor Setup
     pinMode(S0, OUTPUT);
@@ -79,6 +81,7 @@ void setup() {
     digitalWrite(S0, HIGH);
     digitalWrite(S1, LOW);
     Serial.println("Color Sensor Initialized");
+    digitalWrite(LED_EXTRA_PIN, HIGH);
 
     // Initialize color queue with "BLACK"
     for (int i = 0; i < QUEUE_SIZE; i++) {
@@ -145,7 +148,7 @@ void loop() {
       Serial.print("✅ Correct color detected: ");
       Serial.println(detectedColor);
       blinkLED();
-      currentColorIndex++;
+      currentColorIndex += 1;
       mappedX[map_index] = x;
       mappedY[map_index] = y;
       map_index += 1;
@@ -266,48 +269,26 @@ String identifyColor(int r, int g, int b) {
     Serial.print(" G: ");
     Serial.print(g);
     Serial.print(" B: ");
-    Serial.println(b);
+    // Serial.println(b);
 
-    // Check for BLACK (all values are low)
-    if (r > 600 && g > 1000 && b > 1000) return "BLACK";
+    // // Check for BLACK (all values are low)
+    // if (r > 300 && g > 300 && b > 300) return "BLACK";
 
     // Check for dominant color
-    if (r > g + 50 && r > b + 50) return "GREEN";
-    if (g > r + 50 && g > b + 50) return "BLUE";
-    if (b > r + 50 && b > g + 50) return "RED";
-
-    return "BLACK";  // Default to BLACK if no dominant color
-}
-
-// ========== STABILIZING COLOR DETECTION ==========
-String getStableColor() {
-    int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
-
-    // Count occurrences of each color in the queue
-    for (int i = 0; i < QUEUE_SIZE; i++) {
-        if (colorQueue[i] == "RED") redCount++;
-        else if (colorQueue[i] == "GREEN") greenCount++;
-        else if (colorQueue[i] == "BLUE") blueCount++;
-        else if (colorQueue[i] == "BLACK") blackCount++;
+    if (r < g - 50 && r < b - 50) {
+      Serial.print("r");
+      return "RED";
+    }
+    if (g < r - 15 && g < b - 15) {
+      Serial.print("G");
+      return "GREEN";
+    }
+    if (b < r - 25 && b < g - 25) {
+      Serial.print("B");
+      return "BLUE";
     }
 
-    // Print occurrences for debugging
-    Serial.print("Color Counts -> R: ");
-    Serial.print(redCount);
-    Serial.print(" G: ");
-    Serial.print(greenCount);
-    Serial.print(" B: ");
-    Serial.print(blueCount);
-    Serial.print(" Black: ");
-    Serial.println(blackCount);
-
-    // Return the most frequent color (only if it appears in at least 50% of the queue)
-    int majorityThreshold = QUEUE_SIZE / 2;
-
-    if (redCount > majorityThreshold) return "GREEN";
-    if (greenCount > majorityThreshold) return "BLUE";
-    if (blueCount > majorityThreshold) return "RED";
-    return "BLACK";  // Default to BLACK if no majority
+    return "BLACK";  // Default to BLACK if no dominant color
 }
 
 // ========== WALL DETECTION FUNCTIONS ==========
@@ -333,8 +314,10 @@ float getWallDistance() {
 
 // ========== LED FUNCTION ==========
 void blinkLED() {
-    Serial.println("💡 LED Blinking!");
-    digitalWrite(LED_PIN, HIGH);
-    delay(1000);
-    digitalWrite(LED_PIN, LOW);
+  stopMotors();
+  Serial.println("💡 LED Blinking!");
+  digitalWrite(LED_PIN, HIGH);
+  delay(1000);
+  digitalWrite(LED_PIN, LOW);
+  moveForward();
 }
