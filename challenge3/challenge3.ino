@@ -25,13 +25,15 @@ int red = 0, green = 0, blue = 0;
 #define WALL_DISTANCE_THRESHOLD 200  // 20 cm
 
 // ========== SEQUENCE TRACKING ==========
-const String colorSequence[] = {"RED", "BLUE", "GREEN", "BLUE", "GREEN"};
+const String colorSequence[] = {"RED", "GREEN", "BLUE", "GREEN", "BLUE"};
 int currentColorIndex = 0;  // Keeps track of expected color
+bool sequenceCompleted = false;  // Flag to stop movement after last blue
 
 // ========== COLOR DETECTION FILTER ==========
-#define QUEUE_SIZE 5
-String colorQueue[QUEUE_SIZE];  // Store last 5 detected colors
+#define QUEUE_SIZE 7
+String colorQueue[QUEUE_SIZE];  // Store last 7 detected colors
 int colorIndex = 0;
+int colorCount = 0;  // Count colors before turning right
 
 // ========== DEBOUNCE TIMER ==========
 unsigned long lastColorTime = 0;
@@ -73,6 +75,11 @@ void setup() {
 
 // ========== MAIN LOOP ==========
 void loop() {
+    if (sequenceCompleted) {
+        stopMotors();
+        return;  // Prevents further execution after sequence completion
+    }
+
     long duration;
     float distance = 0.0;
 
@@ -81,9 +88,15 @@ void loop() {
         moveForward();
         distance = getWallDistance();
     }
+    
+    // If wall detected, TURN LEFT
+    Serial.println("🧱 Wall detected! Turning left...");
     stopMotors();
+    turnLeft();
+    delay(300);  // Small delay for stability
+    return;
 
-    // Read and process color using your detection system
+    // Read and process color using the detection system
     red = getColorReading(LOW, LOW);
     green = getColorReading(HIGH, HIGH);
     blue = getColorReading(LOW, HIGH);
@@ -119,6 +132,25 @@ void loop() {
     Serial.println(stableColor);
     blinkLED();
     currentColorIndex++;
+
+    // Increment color count
+    colorCount++;
+
+    // Turn RIGHT after detecting 2 colors
+    if (colorCount >= 2) {
+        Serial.println("🔄 Two colors scanned, turning right...");
+        stopMotors();
+        turnRight();
+        colorCount = 0;  // Reset color count after turning right
+    }
+
+    // Check if we have detected the last BLUE
+    if (currentColorIndex == 5) {
+        Serial.println("🚀 Sequence Completed! Stopping Robot.");
+        stopMotors();
+        sequenceCompleted = true;
+        while(true);  // Stop the infinite loop
+    }
 }
 
 // ========== MOVEMENT FUNCTIONS ==========
@@ -140,37 +172,23 @@ void stopMotors() {
     digitalWrite(motor2Pin2, LOW);
 }
 
-// ========== COLOR DETECTION FUNCTIONS ==========
-int getColorReading(int s2State, int s3State) {
-    digitalWrite(S2, s2State);
-    digitalWrite(S3, s3State);
-    delay(100);
-    return pulseIn(sensorOut, LOW);
+// ========== TURNING FUNCTIONS ==========
+void turnLeft() {
+    Serial.println("🔄 Turning Left...");
+    digitalWrite(motor1Pin1, LOW);
+    digitalWrite(motor1Pin2, HIGH);
+    digitalWrite(motor2Pin1, HIGH);
+    digitalWrite(motor2Pin2, LOW);
+    delay(700);  // Adjust delay for accurate 90-degree turn
 }
 
-String identifyColor(int r, int g, int b) {
-    if (r < g - 50 && r < b - 50) return "RED";
-    else if (g < r - 50 && g < b - 50) return "GREEN";
-    else if (b < r - 50 && b < g - 50) return "BLUE";
-    else return "BLACK";  // Default to BLACK if not RED, GREEN, or BLUE
-}
-
-String getStableColor() {
-    int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
-
-    // Count occurrences of each color
-    for (int i = 0; i < QUEUE_SIZE; i++) {
-        if (colorQueue[i] == "RED") redCount++;
-        else if (colorQueue[i] == "GREEN") greenCount++;
-        else if (colorQueue[i] == "BLUE") blueCount++;
-        else if (colorQueue[i] == "BLACK") blackCount++;
-    }
-
-    // Return the most frequent color
-    if (redCount >= greenCount && redCount >= blueCount && redCount >= blackCount) return "RED";
-    if (greenCount >= redCount && greenCount >= blueCount && greenCount >= blackCount) return "GREEN";
-    if (blueCount >= redCount && blueCount >= greenCount && blueCount >= blackCount) return "BLUE";
-    return "BLACK";  // Default to BLACK if no majority
+void turnRight() {
+    Serial.println("🔄 Turning Right...");
+    digitalWrite(motor1Pin1, HIGH);
+    digitalWrite(motor1Pin2, LOW);
+    digitalWrite(motor2Pin1, LOW);
+    digitalWrite(motor2Pin2, HIGH);
+    delay(700);  // Adjust delay for accurate 90-degree turn
 }
 
 // ========== WALL DETECTION FUNCTIONS ==========
@@ -190,18 +208,72 @@ float getWallDistance() {
 
     duration = pulseIn(ECHO_PIN, HIGH);
     distance = (duration * 0.343) / 2;
-    
-    Serial.print("Distance to Wall: ");
-    Serial.print(distance);
-    Serial.println(" mm");
-    
+
     return distance;
+}
+
+// ========== COLOR DETECTION FUNCTIONS ==========
+int getColorReading(int s2State, int s3State) {
+    digitalWrite(S2, s2State);
+    digitalWrite(S3, s3State);
+    delay(25);
+    return pulseIn(sensorOut, LOW);
 }
 
 // ========== LED FUNCTION ==========
 void blinkLED() {
     Serial.println("💡 LED Blinking!");
-    digitalWrite(LED_RED, HIGH);
+    digitalWrite(LED_BUILTIN, HIGH);
     delay(500);
-    digitalWrite(LED_RED, LOW);
+    digitalWrite(LED_BUILTIN, LOW);
+}
+
+
+String identifyColor(int r, int g, int b) {
+    Serial.print("Processing Color -> R: ");
+    Serial.print(r);
+    Serial.print(" G: ");
+    Serial.print(g);
+    Serial.print(" B: ");
+    Serial.println(b);
+
+    // Check for BLACK (all values are low)
+    if (r < 300 && g < 300 && b < 300) return "BLACK";
+
+    // Check for dominant color
+    if (r > g + 50 && r > b + 50) return "GREEN";
+    if (g > r + 50 && g > b + 50) return "BLUE";
+    if (b > r + 50 && b > g + 50) return "RED";
+
+    return "BLACK";  // Default to BLACK if no dominant color
+}
+
+String getStableColor() {
+    int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
+
+    // Count occurrences of each color in the queue
+    for (int i = 0; i < QUEUE_SIZE; i++) {
+        if (colorQueue[i] == "RED") redCount++;
+        else if (colorQueue[i] == "GREEN") greenCount++;
+        else if (colorQueue[i] == "BLUE") blueCount++;
+        else if (colorQueue[i] == "BLACK") blackCount++;
+    }
+
+    // Print occurrences for debugging
+    Serial.print("Color Counts -> R: ");
+    Serial.print(redCount);
+    Serial.print(" G: ");
+    Serial.print(greenCount);
+    Serial.print(" B: ");
+    Serial.print(blueCount);
+    Serial.print(" Black: ");
+    Serial.println(blackCount);
+
+    // Return the most frequent color (only if it appears in at least 50% of the queue)
+    int majorityThreshold = QUEUE_SIZE / 2;
+    
+    if (redCount > majorityThreshold) return "GREEN";
+    if (greenCount > majorityThreshold) return "BLUE";
+    if (blueCount > majorityThreshold) return "RED";
+    return "BLACK";  // Default to BLACK if no majority
 }

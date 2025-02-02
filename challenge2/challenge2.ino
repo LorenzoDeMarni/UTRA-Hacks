@@ -1,4 +1,7 @@
+#include <Servo.h>  // Include Servo library
+
 #define SERVO_PIN A3  // Servo connected to Analog Pin A3
+Servo myServo;  // Create Servo object
 
 
 // ========== MOTOR DRIVER PIN DEFINITIONS ==========
@@ -11,7 +14,7 @@
 
 // ========== MOTOR SPEED CONFIGURATION ==========
 int motorSpeedLeft = 145;  
-int motorSpeedRight = 150;
+int motorSpeedRight = 145;
 
 // ========== COLOR SENSOR PIN DEFINITIONS ==========
 #define S0 2  // Frequency scaling pin
@@ -25,7 +28,8 @@ int motorSpeedRight = 150;
 #define echoPin A5
 
 
-
+#define LED_PIN A2  // Define LED pin
+#define LED_PIN2 A1 // Deine led pin 2
 
 int red = 0, green = 0, blue = 0;
 
@@ -35,7 +39,7 @@ String colorQueue[QUEUE_SIZE];
 int colorIndex = 0;
 
 // ========== TURN AND TIMER CONFIGURATION ==========
-#define turn_value 820  // Delay time for turning (adjust for accuracy)
+#define turn_value 800  // Delay time for turning (adjust for accuracy)
 
 unsigned long startTime = 0;  
 unsigned long stopTime = 0;   
@@ -43,6 +47,7 @@ bool timerRunning = false;
 
 int sequence = 0;
 String stableColor = "BLACK";
+String detectedColor = "BLACK";
 
 
 void setup() {
@@ -55,6 +60,8 @@ void setup() {
     pinMode(motor2Pin2, OUTPUT);
     pinMode(EN_B, OUTPUT);
 
+    myServo.attach(SERVO_PIN);  
+    myServo.write(90); 
     // Set color sensor pins
     pinMode(S0, OUTPUT);
     pinMode(S1, OUTPUT);
@@ -67,9 +74,15 @@ void setup() {
     pinMode(trigPin, OUTPUT);
     pinMode(echoPin, INPUT); 
 
+      pinMode(LED_PIN, OUTPUT);  // Set A2 as an OUTPUT4
+      pinMode(LED_PIN2, OUTPUT);  // Set A2 as an OUTPUT
+
     delay(2000);
 
-
+    digitalWrite(LED_PIN, HIGH);  // Turn LED ON
+    delay(1000);                  // Wait 1 second
+    digitalWrite(LED_PIN, LOW);   // Turn LED OFF
+    delay(1000); 
 
     Serial.begin(9600);
 
@@ -93,41 +106,42 @@ void loop() {
     blue = getColorReading(LOW, HIGH);
     
     
-     if (distance > 10) {
+     if (distance > 19 || distance==0) {
         Serial.println("Moving forward.");
         moveForward();
     } 
     else {
         Serial.println("Wall detected! Stopping.");
         stopMotors();
+        delay(1000);
         for(int i=0;i<10;i++){
-          String detectedColor = identifyColor(red, green, blue);
-          colorQueue[colorIndex] = detectedColor;
-          colorIndex = (colorIndex + 1) % QUEUE_SIZE;
-          stableColor = getStableColor();
+          detectedColor = identifyColor(red, green, blue);
+          // colorQueue[colorIndex] = detectedColor;
+          // colorIndex = (colorIndex + 1) % QUEUE_SIZE;
+          // stableColor = getStableColor();
           
         }
-        Serial.println("Stable Detected Color: ");
-        Serial.println(stableColor);
+        // Serial.println("Stable Detected Color: ");
+        // Serial.println(stableColor);
         
-        if(stableColor=="RED"){
+        if(detectedColor=="RED"){
           turnLeft();
           turnLeft();
           delay(1000);
 
 
         }
-        else if(stableColor=="BLUE"){
+        else if(detectedColor=="BLUE"){
           turnLeft();
           delay(1000);
 
         }
-        else if(stableColor=="GREEN"){
+        else if(detectedColor=="GREEN"){
           turnRight();
           delay(1000);
 
         }
-        else if(stableColor=="BLACK"){
+        else if(detectedColor=="BLACK"){
           stopMotors();
           Serial.println("FINISHED");
           delay(20000);
@@ -173,16 +187,33 @@ String identifyColor(int r, int g, int b) {
     Serial.print(" B: ");
     Serial.println(b);
 
-    // Check for BLACK (all values are low)
-    if (r < 300 && g < 300 && b < 300) return "BLACK";
+    // Threshold to determine black
+    int blackThreshold = 300;
 
-    // Check for dominant color
-    if (r > g + 50 && r > b + 50) return "GREEN";
-    if (g > r + 50 && g > b + 50) return "BLUE";
-    if (b > r + 50 && b > g + 50) return "RED";
+    if (r < blackThreshold && g < blackThreshold && b < blackThreshold) {
+        return "BLACK";  // All low values mean black
+    }
 
-    return "BLACK";  // Default to BLACK if no dominant color
+    // Set dominance margin
+    int dominanceMargin = 200;  // Adjust this based on sensor accuracy
+
+    // Determine the dominant color
+    if (g < r - 25 && g < b - 25) {
+      Serial.print("GREEM");
+        return "GREEN";
+    }
+     if (r < g - 400 && r < b - 400) {
+      Serial.print("RED");
+        return "RED";
+    }
+    if (b < r - dominanceMargin && b < g - dominanceMargin) {
+      Serial.print("BLUE");
+        return "BLUE";
+    }
+    Serial.print("black");
+    return "BLACK";  // Default to black if no strong dominance
 }
+
 
 String getStableColor() {
     int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
@@ -245,11 +276,13 @@ void reverseMotors(unsigned long duration) {
 }
 
 void turnLeft() {
+    reverseMotors(500);
     Serial.println("Turning Left...");
     analogWrite(EN_A, motorSpeedLeft);
     analogWrite(EN_B, motorSpeedRight);
     digitalWrite(motor1Pin1, LOW);
     digitalWrite(motor1Pin2, HIGH);
+    delay(200);
     digitalWrite(motor2Pin1, HIGH);
     digitalWrite(motor2Pin2, LOW);
     delay(turn_value);
@@ -257,11 +290,14 @@ void turnLeft() {
 }
 
 void turnRight() {
+    reverseMotors(500);
+
     Serial.println("Turning Left...");
     analogWrite(EN_A, motorSpeedLeft);
     analogWrite(EN_B, motorSpeedRight);
     digitalWrite(motor2Pin1, LOW);
     digitalWrite(motor2Pin2, HIGH);
+    delay(200);
     digitalWrite(motor1Pin1, HIGH);
     digitalWrite(motor1Pin2, LOW);
     delay(turn_value);

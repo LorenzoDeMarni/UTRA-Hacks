@@ -31,7 +31,7 @@ String colorQueue[QUEUE_SIZE];
 int colorIndex = 0;
 
 // ========== TURN AND TIMER CONFIGURATION ==========
-#define turn_value 820  // Delay time for turning (adjust for accuracy)
+#define turn_value 750  // Delay time for turning (adjust for accuracy)
 
 unsigned long startTime = 0;  
 unsigned long stopTime = 0;   
@@ -39,6 +39,8 @@ bool timerRunning = false;
 
 int sequence = 0;
 String stableColor = "BLACK";
+String detectedColor = "BLACK";
+
 
 
 void setup() {
@@ -65,7 +67,7 @@ void setup() {
     delay(2000);
 
     myServo.write(150);
-    delay(5000);
+    delay(4000);
 
 
     Serial.begin(9600);
@@ -75,9 +77,11 @@ void setup() {
         colorQueue[i] = "BLACK";
     }
     Serial.println("Initial reverse and move forward");
-    turnLeft();
-    turnLeft();
+
     moveForward();
+    //______TEST_____
+    
+    //________________
     Serial.println("Setup Done");
 
 
@@ -90,16 +94,16 @@ void loop() {
     green = getColorReading(HIGH, HIGH);
     blue = getColorReading(LOW, HIGH);
     
-    String detectedColor = identifyColor(red, green, blue);
-    colorQueue[colorIndex] = detectedColor;
-    colorIndex = (colorIndex + 1) % QUEUE_SIZE;
-    stableColor = getStableColor();
+    detectedColor = identifyColor(red, green, blue);
+    // colorQueue[colorIndex] = detectedColor;
+    // colorIndex = (colorIndex + 1) % QUEUE_SIZE;
+    // stableColor = getStableColor();
     Serial.println("Stable Detected Color: ");
-    Serial.println(stableColor);
+    Serial.println(detectedColor);
     Serial.println(sequence);
     delay(50);
 
-    if (sequence == 0 && stableColor != "BLACK"){
+    if (sequence == 0 && detectedColor != "BLACK"){
       Serial.println("SEQ0");
         stopMotors();
         delay(200);
@@ -113,7 +117,7 @@ void loop() {
 
 
     }
-    else if (sequence == 1 && stableColor == "BLACK"){
+    else if (sequence == 1 && detectedColor == "BLACK"){
         Serial.println("SEQ1");
         stopMotors();
         // stop timer
@@ -131,7 +135,7 @@ void loop() {
         moveForward();
         delay(500);
     }
-    else if (sequence == 2 && stableColor == "BLACK"){
+    else if (sequence == 2 && detectedColor == "BLACK"){
         Serial.println("SEQ2");
         stopMotors();
         delay(1000);
@@ -146,7 +150,7 @@ void loop() {
         moveForward();
         delay(500);
     }
-    else if (sequence == 3 && stableColor == "BLACK"){
+    else if (sequence == 3 && detectedColor == "BLACK"){
         Serial.println("SEQ3");
         stopMotors();
         stopTime = millis();
@@ -186,15 +190,31 @@ String identifyColor(int r, int g, int b) {
     Serial.print(" B: ");
     Serial.println(b);
 
-    // Check for BLACK (all values are low)
-    if (r < 300 && g < 300 && b < 300) return "BLACK";
+    // Threshold to determine black
+    int blackThreshold = 300;
 
-    // Check for dominant color
-    if (r > g + 50 && r > b + 50) return "GREEN";
-    if (g > r + 50 && g > b + 50) return "BLUE";
-    if (b > r + 50 && b > g + 50) return "RED";
+    if (r < blackThreshold && g < blackThreshold && b < blackThreshold) {
+        return "BLACK";  // All low values mean black
+    }
 
-    return "BLACK";  // Default to BLACK if no dominant color
+    // Set dominance margin
+    int dominanceMargin = 200;  // Adjust this based on sensor accuracy
+
+    // Determine the dominant color
+    if (g < r - 25 && g < b - 25) {
+      Serial.print("GREEM");
+        return "GREEN";
+    }
+     if (r < g - 400 && r < b - 400) {
+      Serial.print("RED");
+        return "RED";
+    }
+    if (b < r - dominanceMargin && b < g - dominanceMargin) {
+      Serial.print("BLUE");
+        return "BLUE";
+    }
+    Serial.print("black");
+    return "BLACK";  // Default to black if no strong dominance
 }
 
 String getStableColor() {
