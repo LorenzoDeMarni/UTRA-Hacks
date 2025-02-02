@@ -8,7 +8,7 @@
 int red = 0, green = 0, blue = 0;
 
 // Circular queue for last 5 detected colors
-#define QUEUE_SIZE 5
+#define QUEUE_SIZE 7
 String colorQueue[QUEUE_SIZE];  // Store last 5 colors
 int colorIndex = 0;  // Index for circular queue
 
@@ -45,8 +45,8 @@ void loop() {
     Serial.print(" B: ");
     Serial.println(blue);
 
-    String detectedColor = classifyColor(red, green, blue);  // Use formula-based classification
-
+    String detectedColor = identifyColor(red, green, blue);
+    
     // Add to circular queue
     colorQueue[colorIndex] = detectedColor;
     colorIndex = (colorIndex + 1) % QUEUE_SIZE;  // Move to next index
@@ -55,8 +55,8 @@ void loop() {
     String stableColor = getStableColor();
 
     // Print filtered stable color
-    Serial.print("Stable Detected Color: ");
-    Serial.println(stableColor);
+    // Serial.print("Stable Detected Color: ");
+    // Serial.println(stableColor);
 
     delay(100);  // Wait before next reading
 }
@@ -69,32 +69,19 @@ int getColorReading(int s2State, int s3State) {
     return pulseIn(sensorOut, LOW);  // Measure pulse duration
 }
 
-// **Formula-Based Color Classification**
-String classifyColor(int r, int g, int b) {
-    int total = r + g + b;  // Total intensity
-
-    // Prevent division by zero
-    if (total == 0) return "BLACK";
-
-    // Normalize RGB values (relative intensity)
-    float R_norm = (float)r / total;
-    float G_norm = (float)g / total;
-    float B_norm = (float)b / total;
-
-    // Print normalized values for debugging
-    Serial.print("Normalized RGB -> R: ");
-    Serial.print(R_norm, 2);
-    Serial.print(" G: ");
-    Serial.print(G_norm, 2);
-    Serial.print(" B: ");
-    Serial.println(B_norm, 2);
-
-    // Classify based on dominant color
-    if (R_norm > 0.5 && G_norm < 0.3 && B_norm < 0.3) return "RED";
-    if (G_norm > 0.5 && R_norm < 0.3 && B_norm < 0.3) return "GREEN";
-    if (B_norm > 0.5 && R_norm < 0.3 && G_norm < 0.3) return "BLUE";
-
-    return "BLACK";  // Default to BLACK if no dominant color
+// Identifies the color based on RGB values
+String identifyColor(int r, int g, int b) {
+    // Serial.print("Processing Color -> R: ");
+    // Serial.print(r);
+    // Serial.print(" G: ");
+    // Serial.print(g);
+    // Serial.print(" B: ");
+    // Serial.println(b);
+    if (r>600 && g>1000 & b>1000) return "BLACK";
+    else if (r < g - 15 && r < b - 15) return "RED";
+    else if (g < r - 15 && g < b - 15) return "GREEN";
+    else if (b < r - 15 && b < g - 15) return "BLUE";
+    else return "BLACK";  // Default to BLACK if not RED, GREEN, or BLUE
 }
 
 // Function to find the most common color in the last 5 detections
@@ -109,7 +96,7 @@ String getStableColor() {
         else if (colorQueue[i] == "BLACK") blackCount++;
     }
 
-    // Print occurrences for debugging
+    //Print occurrences for debugging
     Serial.print("Color Counts -> R: ");
     Serial.print(redCount);
     Serial.print(" G: ");

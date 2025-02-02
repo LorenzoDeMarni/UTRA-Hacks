@@ -30,8 +30,8 @@ int currentColorIndex = 0;  // Keeps track of expected color
 bool sequenceCompleted = false;  // Flag to stop movement after last blue
 
 // ========== COLOR DETECTION FILTER ==========
-#define QUEUE_SIZE 5
-String colorQueue[QUEUE_SIZE];  // Store last 5 detected colors
+#define QUEUE_SIZE 7
+String colorQueue[QUEUE_SIZE];  // Store last 7 detected colors
 int colorIndex = 0;
 
 // ========== DEBOUNCE TIMER ==========
@@ -89,7 +89,7 @@ void loop() {
     }
     stopMotors();
 
-    // Read and process color using your detection system
+    // Read and process color using the detection system
     red = getColorReading(LOW, LOW);
     green = getColorReading(HIGH, HIGH);
     blue = getColorReading(LOW, HIGH);
@@ -157,17 +157,20 @@ void stopMotors() {
 int getColorReading(int s2State, int s3State) {
     digitalWrite(S2, s2State);
     digitalWrite(S3, s3State);
-    delay(100);
+    delay(25);
     return pulseIn(sensorOut, LOW);
 }
 
+// Improved Color Classification
 String identifyColor(int r, int g, int b) {
-    if (r < g - 15 && r < b - 15) return "RED";
-    else if (g < r - 15 && g < b - 15) return "GREEN";
-    else if (b < r - 15 && b < g - 15) return "BLUE";
-    else return "BLACK";  // Default to BLACK if not RED, GREEN, or BLUE
+    if (r > 600 && g > 1000 && b > 1000) return "BLACK";
+    if (r > g + 15 && r > b + 15) return "RED";
+    if (g > r + 15 && g > b + 15) return "GREEN";
+    if (b > r + 15 && b > g + 15) return "BLUE";
+    return "BLACK";
 }
 
+// Function to find the most common color in the last 7 detections
 String getStableColor() {
     int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
 
