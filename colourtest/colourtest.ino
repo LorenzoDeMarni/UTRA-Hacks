@@ -8,7 +8,7 @@
 int red = 0, green = 0, blue = 0;
 
 // Circular queue for last 5 detected colors
-#define QUEUE_SIZE 5
+#define QUEUE_SIZE 7
 String colorQueue[QUEUE_SIZE];  // Store last 5 colors
 int colorIndex = 0;  // Index for circular queue
 
@@ -55,8 +55,8 @@ void loop() {
     String stableColor = getStableColor();
 
     // Print filtered stable color
-    Serial.print("Stable Detected Color: ");
-    Serial.println(stableColor);
+    // Serial.print("Stable Detected Color: ");
+    // Serial.println(stableColor);
 
     delay(100);  // Wait before next reading
 }
@@ -71,16 +71,16 @@ int getColorReading(int s2State, int s3State) {
 
 // Identifies the color based on RGB values
 String identifyColor(int r, int g, int b) {
-    Serial.print("Processing Color -> R: ");
-    Serial.print(r);
-    Serial.print(" G: ");
-    Serial.print(g);
-    Serial.print(" B: ");
-    Serial.println(b);
-
-    if (r < g - 1000 && r < b - 500) return "RED";
-    else if (g < r - 25 && g < b - 25) return "GREEN";
-    else if (b < r - 200 && b < g - 50) return "BLUE";
+    // Serial.print("Processing Color -> R: ");
+    // Serial.print(r);
+    // Serial.print(" G: ");
+    // Serial.print(g);
+    // Serial.print(" B: ");
+    // Serial.println(b);
+    if (r>600 && g>1000 & b>1000) return "BLACK";
+    else if (r < g - 15 && r < b - 15) return "RED";
+    else if (g < r - 15 && g < b - 15) return "GREEN";
+    else if (b < r - 15 && b < g - 15) return "BLUE";
     else return "BLACK";  // Default to BLACK if not RED, GREEN, or BLUE
 }
 
@@ -96,7 +96,7 @@ String getStableColor() {
         else if (colorQueue[i] == "BLACK") blackCount++;
     }
 
-    // Print occurrences for debugging
+    //Print occurrences for debugging
     Serial.print("Color Counts -> R: ");
     Serial.print(redCount);
     Serial.print(" G: ");
