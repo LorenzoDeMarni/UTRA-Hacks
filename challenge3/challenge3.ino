@@ -28,9 +28,9 @@ int red = 0, green = 0, blue = 0;
 const String colorSequence[] = {"RED", "GREEN", "BLUE", "GREEN", "BLUE"};
 int currentColorIndex = 0;  // Keeps track of expected color
 bool sequenceCompleted = false;  // Flag to stop movement after last blue
-const int mappedX[] = {0, 0, 0, 0, 0, 0, 0};
-const int mappedY[] = {0, 0, 0, 0, 0, 0, 0};
-const int map_index = 0;
+int mappedX[] = {0, 0, 0, 0, 0, 0, 0};
+int mappedY[] = {0, 0, 0, 0, 0, 0, 0};
+int map_index = 0;
 int x = 0;
 int y = 0;
 int dir = 1; // 1 = +y, 2 = +x, 3 = -y, 4 = -x
@@ -65,7 +65,7 @@ void setup() {
     Serial.println("Ultrasonic Sensor Initialized");
 
     // LED Setup
-    pinMode(LED_PIN, ANALOG);
+    pinMode(LED_PIN, OUTPUT);
 
     // Color Sensor Setup
     pinMode(S0, OUTPUT);
@@ -127,9 +127,9 @@ void loop() {
       Serial.println(detectedColor);
 
       // Ignore if not in sequence
-      if (stableColor != colorSequence[currentColorIndex]) {
+      if (detectedColor != colorSequence[currentColorIndex]) {
         Serial.print("❌ Ignoring out-of-sequence color: ");
-        Serial.println(stableColor);
+        Serial.println(detectedColor);
         
       }
       else {
@@ -145,12 +145,12 @@ void loop() {
         }
         if (t == 1) {
           Serial.print("✅ Correct color detected: ");
-          Serial.println(stableColor);
+          Serial.println(detectedColor);
           blinkLED();
           currentColorIndex++;
           mappedX[map_index] == x;
           mappedY[map_index] == y;
-          map_index ++;
+          map_index += 1;
         }
 
       }
