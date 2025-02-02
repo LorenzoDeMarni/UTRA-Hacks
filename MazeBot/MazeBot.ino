@@ -152,6 +152,15 @@ void setup() {
 void loop() {
     long distance = getDistance();
 
+ // Print raw RGB values for debugging
+    Serial.print("Raw RGB Values -> R: ");
+    Serial.print(red);
+    Serial.print(" G: ");
+    Serial.print(green);
+    Serial.print(" B: ");
+    Serial.println(blue);
+
+
     if (distance > 10) {
         Serial.println("Moving forward.");
         moveForward(145);
