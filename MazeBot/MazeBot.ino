@@ -5,20 +5,26 @@ const int in2 = 7;
 const int enB = 10;
 const int in3 = 8;
 const int in4 = 9;
+#define S0 2
+#define S1 3
+#define S2 5
+#define S3 4
+#define sensorOut 12
+
+int red = 0, green = 0, blue =0;
+
+#define QUEUE_SIZE 5
+String colorQueue[QUEUE_SIZE];  // Store last 5 colors
+int colorIndex = 0; //Index for circular queue
 
 // Sonar Sensor (HC-SR04)
-//const int trigPin = 12;
-//const int echoPin = 11;
-
-// RGB Sensor (TCS3200)
-//const int S2 = 4;
-//const int S3 = 3;
-//const int sensorOut = 2;
+const int trigPin = 12;
+const int echoPin = 11;
 
 // Function to move forward
 void moveForward(int speed) {
     analogWrite(enA, speed);
-    analogWrite(enB, speed);
+    analogWrite(enB, (speed+5));
     digitalWrite(in1, HIGH);
     digitalWrite(in2, LOW);
     digitalWrite(in3, HIGH);
@@ -28,7 +34,7 @@ void moveForward(int speed) {
 // Function to move backward
 void moveBackward(int speed) {
     analogWrite(enA, speed);
-    analogWrite(enB, speed);
+    analogWrite(enB, (speed+5));
     digitalWrite(in1, LOW);
     digitalWrite(in2, HIGH);
     digitalWrite(in3, LOW);
@@ -38,7 +44,7 @@ void moveBackward(int speed) {
 // Function to turn left
 void turnLeft(int speed) {
     analogWrite(enA, speed);
-    analogWrite(enB, speed);
+    analogWrite(enB, (speed+5));
     digitalWrite(in1, LOW);
     digitalWrite(in2, HIGH);
     digitalWrite(in3, HIGH);
@@ -49,7 +55,7 @@ void turnLeft(int speed) {
 // Function to turn right
 void turnRight(int speed) {
     analogWrite(enA, speed);
-    analogWrite(enB, speed);
+    analogWrite(enB, (speed+5));
     digitalWrite(in1, HIGH);
     digitalWrite(in2, LOW);
     digitalWrite(in3, LOW);
@@ -74,7 +80,7 @@ long getDistance() {
     digitalWrite(trigPin, LOW);
 
     long duration = pulseIn(echoPin, HIGH);
-    return duration * 0.034 / 2; // Convert to cm
+    return duration * 0.0343 / 2; // Convert to cm
 }
 
 // Function to read color (TCS3200)
@@ -99,6 +105,12 @@ String detectColor() {
 }
 
 void setup() {
+    pinMode(S0, OUTPUT);
+    pinMode(S1, OUTPUT);
+    pinMode(S2, OUTPUT);
+    pinMode(S3, OUTPUT);
+    pinMode(sensorOut, INPUT);
+
     Serial.begin(9600);
 
     // Set motor pins as outputs
@@ -113,15 +125,28 @@ void setup() {
     pinMode(trigPin, OUTPUT);
     pinMode(echoPin, INPUT);
 
-    // Set RGB sensor pins
-    pinMode(S2, OUTPUT);
-    pinMode(S3, OUTPUT);
-    pinMode(sensorOut, INPUT);
+    digitalWrite(S0, HIGH);
+    digitalWrite(S1, LOW);
+      for (int i = 0; i < QUEUE_SIZE; i++) {
+        colorQueue[i] = "BLACK";
+    }
+
 }
 
 void loop() {
     long distance = getDistance();
-    
+      // Add to circular queue
+    colorQueue[colorIndex] = detectedColor;
+    colorIndex = (colorIndex + 1) % QUEUE_SIZE;  // Move to next index
+
+    // Get most frequent color from queue
+    String stableColor = getStableColor();
+
+    // Print filtered color
+    Serial.print("Stable Detected Color: ");
+    Serial.println(stableColor);
+
+    delay(100);  // Wait before next reading
     if (distance > 10) {
         Serial.println("Moving forward.");
         moveForward(180);
@@ -132,9 +157,22 @@ void loop() {
         delay(500);
         
         // Read color after stopping
+        // array with 5 items
+        String arr[5];
+        for(int i=0;i<5;i++){
+          red = getColorReading(LOW, LOW); // Read Red
+          green = getColorReading(HIGH, HIGH); // Read Green
+          blue = getColorReading(LOW, HIGH); // Read Blue
+    
+          String detectedColor = identifyColor(red, green, blue);
+          arr[i]=detectedColor
+        }
+
         String color = detectColor();
         Serial.print("Detected Tile Color: ");
         Serial.println(color);
+
+
 
         // Decision-making based on color
         if (color == "Red") {
