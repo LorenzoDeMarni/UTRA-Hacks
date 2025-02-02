@@ -21,22 +21,22 @@
 // ========== GLOBAL VARIABLES ==========
 int motorSpeed = 150;  
 int red = 0, green = 0, blue = 0;
-float estimatedSpeed = 5.0; // Assume robot moves ~5 cm per second
+float estimatedSpeed = 5.0;  // Assume robot moves ~5 cm per second
 float estimatedDistance = 0;
 unsigned long lastMoveTime = 0;
 
-// Time-based region tracking
-unsigned long lastGreenExitTime = 0;
-unsigned long lastBlueExitTime = 0;
-bool firstGreenDetected = false;
+// Region Tracking
+unsigned long lastGreenExitTime = 0, lastBlueExitTime = 0;
+float lastGreenExitDistance = 0, lastBlueExitDistance = 0;
+bool firstRedDetected = false;
 bool firstBlueDetected = false;
+bool firstGreenDetected = false;
 
-// Color sequence
-const char* colorSequence[] = {"Red", "Green", "Blue", "Green", "Blue"};
-int currentColorIndex = 0;
+// Sequence tracking
+const char* colorSequence[] = {"Red", "Blue", "Green", "Blue", "Green"};
+int currentColorIndex = 0;  // Keeps track of the correct sequence
 
 void setup() {
-    // Motor setup
     pinMode(EN_A, OUTPUT);
     pinMode(motor1Pin1, OUTPUT);
     pinMode(motor1Pin2, OUTPUT);
@@ -44,21 +44,18 @@ void setup() {
     pinMode(motor2Pin2, OUTPUT);
     pinMode(EN_B, OUTPUT);
 
-    // Color sensor setup
     pinMode(S0, OUTPUT);
     pinMode(S1, OUTPUT);
     pinMode(S2, OUTPUT);
     pinMode(S3, OUTPUT);
     pinMode(sensorOut, INPUT);
 
-    // Ultrasonic sensor setup
     pinMode(TRIG_PIN, OUTPUT);
     pinMode(ECHO_PIN, INPUT);
 
     Serial.begin(9600);
     Serial.println("System Ready.");
 
-    // Color sensor settings
     digitalWrite(S0, HIGH);
     digitalWrite(S1, LOW);
 
@@ -98,58 +95,81 @@ void stopMotors() {
     digitalWrite(motor2Pin2, LOW);
 }
 
-// ========== COLOR DETECTION & REGION TRACKING ==========
+// ========== COLOR DETECTION & SEQUENCE TRACKING ==========
 void checkColorSequence() {
     String detectedColor = get_color();
     unsigned long currentTime = millis();
 
-    if (detectedColor == "Red") return;  // Always ignore after first Red
+    // Ignore colors that are NOT in the sequence
+    if (detectedColor != colorSequence[currentColorIndex]) {
+        Serial.print("❌ Ignoring color (not in sequence): ");
+        Serial.println(detectedColor);
+        return;
+    }
 
-    if (detectedColor == "Green") {
-        if (!firstGreenDetected) {  
-            firstGreenDetected = true;
-            lastGreenExitTime = currentTime;
-        } else {
-            unsigned long timeSinceLastGreen = currentTime - lastGreenExitTime;
-            float distanceSinceLastGreen = estimatedDistance;
-
-            if (timeSinceLastGreen > 5000 && distanceSinceLastGreen > 20) {  
-                digitalWrite(LED_PIN, HIGH);
-                delay(500);
-                digitalWrite(LED_PIN, LOW);
-                lastGreenExitTime = currentTime;
-                estimatedDistance = 0;  
-                currentColorIndex++;
-            }
+    // First Red detection
+    if (detectedColor == "Red") {
+        if (!firstRedDetected) {
+            Serial.println("✅ First Red detected! Blinking LED.");
+            blinkLED();
+            firstRedDetected = true;
+            currentColorIndex++;  // Move to next color in sequence (Blue)
         }
-    } 
+        return;  // Ignore all Reds after first detection
+    }
 
+    // Blue detection (must be at index 1 or 3)
     if (detectedColor == "Blue") {
-        if (!firstBlueDetected) {  
+        unsigned long timeSinceLastBlue = currentTime - lastBlueExitTime;
+        float distanceSinceLastBlue = estimatedDistance - lastBlueExitDistance;
+
+        if (!firstBlueDetected) {
             firstBlueDetected = true;
             lastBlueExitTime = currentTime;
+            lastBlueExitDistance = estimatedDistance;
+        } else if (timeSinceLastBlue > 5000 && distanceSinceLastBlue > 20) {
+            Serial.println("✅ New Blue region detected!");
+            blinkLED();
+            lastBlueExitTime = currentTime;
+            lastBlueExitDistance = estimatedDistance;
+            currentColorIndex++;
         } else {
-            unsigned long timeSinceLastBlue = currentTime - lastBlueExitTime;
-            float distanceSinceLastBlue = estimatedDistance;
+            Serial.println("⚠️ False Negative Blue - Skipping.");
+        }
+    }
 
-            if (timeSinceLastBlue > 5000 && distanceSinceLastBlue > 20) {  
-                digitalWrite(LED_PIN, HIGH);
-                delay(500);
-                digitalWrite(LED_PIN, LOW);
-                lastBlueExitTime = currentTime;
-                estimatedDistance = 0;  
-                currentColorIndex++;
-            }
+    // Green detection (must be at index 2 or 4)
+    if (detectedColor == "Green") {
+        unsigned long timeSinceLastGreen = currentTime - lastGreenExitTime;
+        float distanceSinceLastGreen = estimatedDistance - lastGreenExitDistance;
+
+        if (!firstGreenDetected) {
+            firstGreenDetected = true;
+            lastGreenExitTime = currentTime;
+            lastGreenExitDistance = estimatedDistance;
+        } else if (timeSinceLastGreen > 5000 && distanceSinceLastGreen > 20) {
+            Serial.println("✅ New Green region detected!");
+            blinkLED();
+            lastGreenExitTime = currentTime;
+            lastGreenExitDistance = estimatedDistance;
+            currentColorIndex++;
+        } else {
+            Serial.println("⚠️ False Negative Green - Skipping.");
         }
     }
 }
 
 // ========== COLOR SENSOR FUNCTIONS ==========
+void blinkLED() {
+    digitalWrite(LED_PIN, HIGH);
+    delay(500);
+    digitalWrite(LED_PIN, LOW);
+}
+
 String get_color() {
     red = getColorReading(LOW, LOW);
     green = getColorReading(HIGH, HIGH);
     blue = getColorReading(LOW, HIGH);
-
     return identifyColor(red, green, blue);
 }
 
@@ -165,41 +185,4 @@ String identifyColor(int r, int g, int b) {
     else if (g < r - 15 && g < b - 15) return "GREEN";
     else if (b < r - 15 && b < g - 15) return "BLUE";
     else return "BLACK";
-}
-
-// ========== ULTRASONIC SENSOR (OBSTACLE AVOIDANCE) ==========
-void avoidWalls() {
-    long duration;
-    float distance = 0.0;
-
-    digitalWrite(TRIG_PIN, LOW);
-    delayMicroseconds(2);
-    digitalWrite(TRIG_PIN, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(TRIG_PIN, LOW);
-
-    duration = pulseIn(ECHO_PIN, HIGH);
-    distance = (duration * 0.343) / 2; 
-
-    Serial.print("Distance to Wall: ");
-    Serial.print(distance);
-    Serial.println(" mm");
-
-    if (distance > 0 && distance <= WALL_DISTANCE_THRESHOLD) {
-       Serial.println("STOP! Obstacle ahead!");
-       stopMotors();
-       delay(500);
-       turnRight(1000);
-    }
-}
-
-void turnRight(int duration) {
-    analogWrite(EN_A, motorSpeed);
-    analogWrite(EN_B, motorSpeed);
-    digitalWrite(motor1Pin1, HIGH);
-    digitalWrite(motor1Pin2, LOW);
-    digitalWrite(motor2Pin1, LOW);
-    digitalWrite(motor2Pin2, HIGH);
-    delay(duration);
-    stopMotors();
 }
