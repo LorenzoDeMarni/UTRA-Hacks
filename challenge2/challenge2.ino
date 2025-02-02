@@ -1,19 +1,18 @@
 // Motor Driver Pin Definitions
 #define motor1Pin1 6   // Control pin for second motor
 #define motor1Pin2 7   // Control pin for second motor
-//left motor
+//right motor
 
 #define motor2Pin1 8   // Control pin for first motor
 #define motor2Pin2 9   // Control pin for first motor
-//right method
+//left motor
 
 #define EN_B 10  // PWM speed control for left
 #define EN_A 11  // PWM speed control for right
 
 // Motor speed (adjustable between 0-255)
-int motorSpeed = 150;  // 150 is about 60% speed
-
-# https://www.instructables.com/Running-DC-Motor-With-Arduino-Using-L298N-Motor-Dr/
+int motorSpeedLeft = 145;  
+int motorSpeedRight = 150;
 
 // change the pin values for light sensor
 #define S0 2;
@@ -25,27 +24,20 @@ int motorSpeed = 150;  // 150 is about 60% speed
 int red = 0, green = 0, blue = 0;
 
 //ultrasonic sensor
-#define TRIG_PIN 0
-#define ECHO_PIN 1
-#define WALL_DISTANCE_THRESHOLD 100
+#define TRIG_PIN A4
+#define ECHO_PIN A5
+#define WALL_DISTANCE_THRESHOLD 200
 
 boolean black_second_time = True;
 
+// To insure accuracy, tracks the color 5 times, see if same color appears 5 times
+#define QUEUE_SIZE 5
+String colorQueue[QUEUE_SIZE];  // Store last 5 colors
+int colorIndex = 0;  // Index for circular queue
+
 //seperate value for turning 90 degrees (to be changed)
-#define turn_value 100
-void color_setup() {
-    pinMode(S0, OUTPUT);
-    pinMode(S1, OUTPUT);
+#define turn_value 700
 
-    pinMode(S2, OUTPUT);
-    pinMode(S3, OUTPUT);
-    pinMode(sensorOut, INPUT);
-
-    digitalWrite(S0, HIGH);
-    digitalWrite(S1, LOW);
-
-    Serial.begin(9600);
-}
 
 void setup() {
     // Set motor control pins as outputs
@@ -58,17 +50,37 @@ void setup() {
 
     Serial.println("Motor System Initialized");
     
-    //setup for sensor
+    //setup for ultra sonic sensor
     pinMode(TRIG_PIN, OUTPUT);
     pinMode(ECHO_PIN, INPUT);
+
     Serial.println("Ultra sonic sensor Initialized");
+
+    //setup for color sensor
+    pinMode(S0, OUTPUT);
+    pinMode(S1, OUTPUT);
+
+    pinMode(S2, OUTPUT);
+    pinMode(S3, OUTPUT);
+    pinMode(sensorOut, INPUT);
+
+    digitalWrite(S0, HIGH);
+    digitalWrite(S1, LOW);
+
+    Serial.println("Color sensir Initialized");
+
     Serial.begin(9600);
 }
+
 
 void loop() {
 
     long duration;
     float distance = 0.0;
+
+    red = getColorReading(LOW, LOW); // Read Red
+    green = getColorReading(HIGH, HIGH); // Read Green
+    blue = getColorReading(LOW, HIGH); // Read Blue
 
 // constantly move forward until we hit a wall
     while (detect_wall(distance) != True) {
@@ -85,13 +97,20 @@ void loop() {
 
         // Convert the time to distance (in mm)
         distance = (duration * 0.343) / 2; 
-        delay(10);
+        delay(400);
     }
     stopMotors();
 
-    String current_color = get_color();
+    String detectedColor = identifyColor(red, green, blue);
+    
+    // Add to circular queue
+    colorQueue[colorIndex] = detectedColor;
+    colorIndex = (colorIndex + 1) % QUEUE_SIZE;  // Move to next index
 
-    if (current_color == "RED") {
+    // Get most frequent color from queue
+    String stableColor = getStableColor();
+
+    if (stableColor == "RED") {
         if (black_second_time == True) {
             black_second_time = False;
         }
@@ -100,7 +119,7 @@ void loop() {
         loop();
     }
 
-    else if (current_color == "BLUE") {
+    else if (stableColor == "BLUE") {
         if (black_second_time == True) {
             black_second_time = False;
         }
@@ -108,7 +127,7 @@ void loop() {
         loop();
     }
 
-    else if (current_color == "GREEN") {
+    else if (stableColor == "GREEN") {
         if (black_second_time == True) {
             black_second_time = False;
         }
@@ -116,7 +135,7 @@ void loop() {
         loop();
     }
 
-    else if (current_color == "BLACK" && black_second_time == False) {
+    else if (stableColor == "BLACK" && black_second_time == False) {
         stopMotors();
         break;
     }
@@ -165,26 +184,6 @@ void stopMotors() {
     digitalWrite(motor2Pin2, LOW);
 }
 
-String get_color() {
-
-    red = getColorReading(LOW, LOW); // Read Red
-    green = getColorReading(HIGH, HIGH); // Read Green
-    blue = getColorReading(LOW, HIGH); // Read Blue
-
-    Serial.print("Red: ");
-    Serial.print(red);
-    Serial.print("  Green: ");
-    Serial.print(green);
-    Serial.print("  Blue: ");
-    Serial.println(blue);
-
-    String color = identifyColor(red, green, blue);
-    return color;
-
-    delay(500);
-
-}
-
 String identifyColor(int r, int g, int b) {
     if (r < g - 15 && r < b - 15) return "RED";
     else if (g < r - 15 && g < b - 15) return "GREEN";
@@ -196,6 +195,23 @@ int getColorReading(int s2State, int s3State) {
     digitalWrite(S3, s3State);
     delay(100);  // Allow sensor to settle
     return pulseIn(sensorOut, LOW);  // Measure pulse duration
+}
+
+String getStableColor() {
+    int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
+
+    // Count occurrences of each color
+    for (int i = 0; i < QUEUE_SIZE; i++) {
+        if (colorQueue[i] == "RED") redCount++;
+        else if (colorQueue[i] == "GREEN") greenCount++;
+        else if (colorQueue[i] == "BLUE") blueCount++;
+        else if (colorQueue[i] == "BLACK") blackCount++;
+    }
+    // Return the most frequent color
+    if (redCount >= greenCount && redCount >= blueCount && redCount >= blackCount) return "RED";
+    if (greenCount >= redCount && greenCount >= blueCount && greenCount >= blackCount) return "GREEN";
+    if (blueCount >= redCount && blueCount >= greenCount && blueCount >= blackCount) return "BLUE";
+    return "BLACK";  // Default to BLACK if no majority
 }
 
 boolean detect_wall(int distance) {
