@@ -28,6 +28,12 @@ int red = 0, green = 0, blue = 0;
 const String colorSequence[] = {"RED", "GREEN", "BLUE", "GREEN", "BLUE"};
 int currentColorIndex = 0;  // Keeps track of expected color
 bool sequenceCompleted = false;  // Flag to stop movement after last blue
+const int mappedX[] = {0, 0, 0, 0, 0, 0, 0};
+const int mappedY[] = {0, 0, 0, 0, 0, 0, 0};
+const int map_index = 0;
+int x = 0;
+int y = 0;
+int dir = 1; // 1 = +y, 2 = +x, 3 = -y, 4 = -x
 
 // ========== LED ==========
 #define LED_PIN A2
@@ -60,7 +66,7 @@ void setup() {
 
     // LED Setup
     pinMode(LED_PIN, ANALOG);
-    
+
     // Color Sensor Setup
     pinMode(S0, OUTPUT);
     pinMode(S1, OUTPUT);
@@ -91,6 +97,18 @@ void loop() {
     // Move forward until a wall is detected
     while (!detect_wall(distance)) {
         moveForward();
+        if (dir == 1) {
+          y += 1;
+        }
+        else if (dir == 2) {
+          x += 1;
+        }
+        else if (dir == 3) {
+          y -= 1;
+        }
+        else {
+          x -= 1;
+        }
         distance = getWallDistance();
         
 
@@ -104,12 +122,9 @@ void loop() {
       colorQueue[colorIndex] = detectedColor;
       colorIndex = (colorIndex + 1) % QUEUE_SIZE;
 
-      // Get the most stable color
-      String stableColor = getStableColor();
-
       // Print detected color
       Serial.print("Detected Color: ");
-      Serial.println(stableColor);
+      Serial.println(detectedColor);
 
       // Ignore if not in sequence
       if (stableColor != colorSequence[currentColorIndex]) {
@@ -118,10 +133,26 @@ void loop() {
         
       }
       else {
-        Serial.print("✅ Correct color detected: ");
-        Serial.println(stableColor);
-        blinkLED();
-        currentColorIndex++;
+        int cur = 0;
+        int t = 1;
+        while(cur < 7) {
+          if ((mappedX[cur] + 1) > x && (mappedX[cur] - 1) < x) {
+            if ((mappedY[cur] + 1) > y && (mappedY[cur] - 1) < y) {
+              t = 0;
+            }
+          }
+          cur ++;
+        }
+        if (t == 1) {
+          Serial.print("✅ Correct color detected: ");
+          Serial.println(stableColor);
+          blinkLED();
+          currentColorIndex++;
+          mappedX[map_index] == x;
+          mappedY[map_index] == y;
+          map_index ++;
+        }
+
       }
       // Check if we have detected the last BLUE
       if (currentColorIndex == 5) {
@@ -184,10 +215,13 @@ void loop() {
     }
 
     // If the color is correct, print and move to next step in sequence
-    Serial.print("✅ Correct color detected: ");
-    Serial.println(stableColor);
-    blinkLED();
-    currentColorIndex++;
+    else {
+      Serial.print("✅ Correct color detected: ");
+      Serial.println(stableColor);
+      blinkLED();
+      currentColorIndex++;
+
+    }
 
     // Check if we have detected the last BLUE
     if (currentColorIndex == 5) {
@@ -219,6 +253,10 @@ void turnRight(int duration) {
     digitalWrite(motor2Pin2, HIGH);
     delay(duration);
     stopMotors();
+    dir += 1;
+    if (dir == 5) {
+      dir = 1;
+    }
 }
 
 void turnLeft(int duration) {
@@ -231,6 +269,10 @@ void turnLeft(int duration) {
   digitalWrite(motor2Pin2, LOW);
   delay(duration);
   stopMotors();
+  dir -= 1;
+  if (dir == 0) {
+    dir = 4;
+  }
 }
 
 void stopMotors() {
