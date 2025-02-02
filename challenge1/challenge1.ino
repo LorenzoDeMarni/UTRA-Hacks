@@ -57,8 +57,8 @@ void setup() {
     pinMode(S3, OUTPUT);
     pinMode(sensorOut, INPUT);
 
-    myServo.attach(SERVO_PIN);  
-    myServo.write(100);  
+    //myServo.attach(SERVO_PIN);  
+    //myServo.write(100);  
     delay(2000);
 
     Serial.begin(9600);
@@ -93,7 +93,7 @@ void loop() {
     if (detectedRings >= 5) {
         Serial.println("🚀 Reached the Center! Dropping Flag.");
         stopMotors();
-        myServo.write(100);  
+        //myServo.write(100);  
         delay(1000);
         reachedCenter = true;
         return;
