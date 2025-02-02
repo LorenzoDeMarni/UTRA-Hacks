@@ -8,10 +8,9 @@
 #define EN_B 10  // PWM speed control for motor 2
 
 // Motor speed (adjustable between 0-255)
-int motorSpeedLeft = 135;  
+int motorSpeedLeft = 145;  
 int motorSpeedRight = 150;
 
-bool buttonPressed = false;  // Track if button was already pressed
 
 void setup() {
     // Set motor control pins as outputs
@@ -29,37 +28,21 @@ void setup() {
 }
 
 void loop() {
-    int buttonState = digitalRead(BUTTON_PIN); // Read button state
-
-    Serial.println(buttonState); // Debug print button state
-
-    if (buttonState == LOW && !buttonPressed) { // Button is pressed (LOW due to pull-up)
-        buttonPressed = true;  // Set flag to prevent looping
-        Serial.println("Button Pressed!");
-
-        // Perform movement actions
-        moveForward(1500);
-        delay(500);
-        turnLeft(750);
-        delay(500);
-        moveForward(1500);
-        delay(500);
-        turnLeft(750);
-        delay(500);
-        moveForward(1500);
-        delay(500);
-        turnRight(750);
-        stopMotors();
-        delay(1000);
-
-        // Wait for button release before allowing another press
-        while (digitalRead(BUTTON_PIN) == LOW) {
-            delay(50); // Small delay to avoid CPU overload
-        }
-        
-        Serial.println("Button Released!");
-        buttonPressed = false; // Reset flag after button is released
-    }
+    // Perform movement actions
+    delay(2000);
+    moveForward(1500);
+    delay(500);
+    turnLeft(730);
+    delay(500);
+    moveForward(1500);
+    delay(500);
+    turnLeft(730);
+    delay(500);
+    moveForward(1500);
+    delay(500);
+    turnRight(700);
+    stopMotors();
+    delay(1000);
 }
 
 // ==================== Motor Control Functions ====================
