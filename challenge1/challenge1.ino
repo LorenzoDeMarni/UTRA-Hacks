@@ -120,10 +120,25 @@ void loop() {
     if (sequence = 2 && stableColor == "BLACK"){
         stopMotors();
         delay(1000);
-        sequence = 3;
         turnLeft();
-        delay(500);
+        turnLeft();
+        startTime = millis();
+        sequence = 3;
         moveForward();
+    }
+    if (sequence = 3 && stableColor == "BLACK"){
+        stopMotors();
+        stopTime = millis();
+        delay(1000);
+        reverseMotors((stopTime - startTime)/2);
+        delay(500);
+        myServo.write(100);  
+        delay(1000);
+        sequence = 4;
+        
+    }
+    if(sequence = 4){
+        break;  
     }
     
 }
