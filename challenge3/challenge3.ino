@@ -82,7 +82,7 @@ void loop() {
     red = getColorReading(LOW, LOW);
     green = getColorReading(HIGH, HIGH);
     blue = getColorReading(LOW, HIGH);
-    String detectedColor = identifyColor(red, green, blue);
+    String detectedColor = identifyColorStable();
 
     // Add to circular queue
     colorQueue[colorIndex] = detectedColor;
@@ -136,26 +136,31 @@ void stopMotors() {
 }
 
 // ========== COLOR DETECTION FUNCTIONS ==========
-String identifyColor(int r, int g, int b) {
+String identifyColorStable() {
     int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
 
-    // Take 5 readings and count occurrences
+    // Take 5 readings
     for (int i = 0; i < 5; i++) {
-        int rVal = getColorReading(LOW, LOW);
-        int gVal = getColorReading(HIGH, HIGH);
-        int bVal = getColorReading(LOW, HIGH);
+        int r = getColorReading(LOW, LOW);
+        int g = getColorReading(HIGH, HIGH);
+        int b = getColorReading(LOW, HIGH);
 
-        if (rVal < gVal - 15 && rVal < bVal - 15) redCount++;
-        else if (gVal < rVal - 15 && gVal < bVal - 15) greenCount++;
-        else if (bVal < rVal - 15 && bVal < gVal - 15) blueCount++;
+        Serial.print("Reading "); Serial.print(i);
+        Serial.print(" - R: "); Serial.print(r);
+        Serial.print(" G: "); Serial.print(g);
+        Serial.print(" B: "); Serial.println(b);
+
+        if (r > g + 10 && r > b + 10) redCount++;
+        else if (g > r + 10 && g > b + 10) greenCount++;
+        else if (b > r + 10 && b > g + 10) blueCount++;
         else blackCount++;
-        
+
         delay(50);
     }
 
-    if (redCount > greenCount && redCount > blueCount) return "RED";
-    if (greenCount > redCount && greenCount > blueCount) return "GREEN";
-    if (blueCount > redCount && blueCount > greenCount) return "BLUE";
+    if (redCount >= 3) return "RED";
+    if (greenCount >= 3) return "GREEN";
+    if (blueCount >= 3) return "BLUE";
     return "BLACK";
 }
 
