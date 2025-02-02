@@ -29,14 +29,13 @@ const String colorSequence[] = {"RED", "GREEN", "BLUE", "GREEN", "BLUE"};
 int currentColorIndex = 0;  // Keeps track of expected color
 bool sequenceCompleted = false;  // Flag to stop movement after last blue
 
-// ========== COLOR DETECTION FILTER ==========
-#define QUEUE_SIZE 7
-String colorQueue[QUEUE_SIZE];  // Store last 7 detected colors
-int colorIndex = 0;
-int validColorCount = 0;  // Counts how many valid colors detected before turning right
+// ========== TIME-BASED TRACKING ==========
+unsigned long lastColorExitTime = 0;  // Time when robot last left a color
+float estimatedDistance = 0.0;        // Estimated distance moved since last color
 
-// ========== DEBOUNCE TIMER ==========
-unsigned long lastColorTime = 0;
+// ========== TIME & DISTANCE THRESHOLD ==========
+#define TIME_THRESHOLD 5000     // 5 seconds minimum between same-color blinks
+#define DISTANCE_THRESHOLD 200  // 20 cm minimum movement between same-color blinks
 
 // ========== SETUP FUNCTION ==========
 void setup() {
@@ -66,11 +65,6 @@ void setup() {
     digitalWrite(S0, HIGH);
     digitalWrite(S1, LOW);
     Serial.println("Color Sensor Initialized");
-
-    // Initialize color queue with "BLACK"
-    for (int i = 0; i < QUEUE_SIZE; i++) {
-        colorQueue[i] = "BLACK";
-    }
 }
 
 // ========== MAIN LOOP ==========
@@ -87,6 +81,7 @@ void loop() {
     while (!detect_wall(distance)) {
         moveForward();
         distance = getWallDistance();
+        estimatedDistance += distance;  // Track estimated movement
     }
     stopMotors();
 
@@ -96,48 +91,38 @@ void loop() {
     blue = getColorReading(LOW, HIGH);
     String detectedColor = identifyColor(red, green, blue);
 
-    // Add to circular queue
-    colorQueue[colorIndex] = detectedColor;
-    colorIndex = (colorIndex + 1) % QUEUE_SIZE;
-
-    // Get the most stable color
-    String stableColor = getStableColor();
-
     // Print detected color
     Serial.print("Detected Color: ");
-    Serial.println(stableColor);
+    Serial.println(detectedColor);
 
     // Debounce logic: Ignore colors detected too soon after the last one
-    if (millis() - lastColorTime < 500) {
+    if (millis() - lastColorExitTime < 500) {
         Serial.println("⏳ Waiting for color to stabilize...");
         return;
     }
-    lastColorTime = millis();  // Update last color detection time
 
     // Ignore if not in sequence
-    if (stableColor != colorSequence[currentColorIndex]) {
+    if (detectedColor != colorSequence[currentColorIndex]) {
         Serial.print("❌ Ignoring out-of-sequence color: ");
-        Serial.println(stableColor);
+        Serial.println(detectedColor);
         return;
     }
 
-    // If the color is correct, print and move to next step in sequence
-    Serial.print("✅ Correct color detected: ");
-    Serial.println(stableColor);
-    blinkLED();
-    currentColorIndex++;
+    // ✅ **Check if the color is a "new" tile using time & distance**
+    unsigned long timeSinceLastColor = millis() - lastColorExitTime;
+    if (timeSinceLastColor > TIME_THRESHOLD && estimatedDistance > DISTANCE_THRESHOLD) {
+        Serial.print("✅ Correct color detected: ");
+        Serial.println(detectedColor);
+        blinkLED();
 
-    // ✅ Only count red, green, or blue when counting valid color detections
-    if (stableColor == "RED" || stableColor == "GREEN" || stableColor == "BLUE") {
-        validColorCount++;
-    }
+        // Move to next step in sequence
+        currentColorIndex++;
 
-    // Turn RIGHT after detecting 2 **valid** colors
-    if (validColorCount >= 2) {
-        Serial.println("🔄 Two colors scanned, turning right...");
-        stopMotors();
-        turnRight();
-        validColorCount = 0;  // Reset color count after turning right
+        // Reset tracking variables
+        lastColorExitTime = millis();
+        estimatedDistance = 0;
+    } else {
+        Serial.println("⚠️ Detected same tile, skipping blink...");
     }
 
     // Check if we have detected the last BLUE
@@ -166,25 +151,6 @@ void stopMotors() {
     digitalWrite(motor1Pin2, LOW);
     digitalWrite(motor2Pin1, LOW);
     digitalWrite(motor2Pin2, LOW);
-}
-
-// ========== TURNING FUNCTIONS ==========
-void turnLeft() {
-    Serial.println("🔄 Turning Left...");
-    digitalWrite(motor1Pin1, LOW);
-    digitalWrite(motor1Pin2, HIGH);
-    digitalWrite(motor2Pin1, HIGH);
-    digitalWrite(motor2Pin2, LOW);
-    delay(700);  // Adjust delay for accurate 90-degree turn
-}
-
-void turnRight() {
-    Serial.println("🔄 Turning Right...");
-    digitalWrite(motor1Pin1, HIGH);
-    digitalWrite(motor1Pin2, LOW);
-    digitalWrite(motor2Pin1, LOW);
-    digitalWrite(motor2Pin2, HIGH);
-    delay(700);  // Adjust delay for accurate 90-degree turn
 }
 
 // ========== WALL DETECTION FUNCTIONS ==========
@@ -216,10 +182,30 @@ int getColorReading(int s2State, int s3State) {
     return pulseIn(sensorOut, LOW);
 }
 
+// ========== IMPROVED COLOR CLASSIFICATION ==========
+String identifyColor(int r, int g, int b) {
+    Serial.print("Processing Color -> R: ");
+    Serial.print(r);
+    Serial.print(" G: ");
+    Serial.print(g);
+    Serial.print(" B: ");
+    Serial.println(b);
+
+    // Check for BLACK (all values are low)
+    if (r > 600 && g > 1000 && b > 1000) return "BLACK";
+
+    // Check for dominant color
+    if (r > g + 50 && r > b + 50) return "GREEN";
+    if (g > r + 50 && g > b + 50) return "BLUE";
+    if (b > r + 50 && b > g + 50) return "RED";
+
+    return "BLACK";  // Default to BLACK if no dominant color
+}
+
 // ========== LED FUNCTION ==========
 void blinkLED() {
     Serial.println("💡 LED Blinking!");
-    digitalWrite(LED_RED, HIGH);
+    digitalWrite(LED_BUILTIN, HIGH);
     delay(500);
-    digitalWrite(LED_RED, LOW);
+    digitalWrite(LED_BUILTIN, LOW);
 }
