@@ -161,26 +161,31 @@ int getColorReading(int s2State, int s3State) {
     return pulseIn(sensorOut, LOW);
 }
 
-// Improved Color Classification
+// ========== IMPROVED COLOR CLASSIFICATION ==========
 String identifyColor(int r, int g, int b) {
-    // Serial.print("Processing Color -> R: ");
-    // Serial.print(r);
-    // Serial.print(" G: ");
-    // Serial.print(g);
-    // Serial.print(" B: ");
-    // Serial.println(b);
-    if (r>600 && g>1000 & b>1000) return "BLACK";
-    else if (r < g - 15 && r < b - 15) return "RED";
-    else if (g < r - 15 && g < b - 15) return "GREEN";
-    else if (b < r - 15 && b < g - 15) return "BLUE";
-    else return "BLACK";  // Default to BLACK if not RED, GREEN, or BLUE
+    Serial.print("Processing Color -> R: ");
+    Serial.print(r);
+    Serial.print(" G: ");
+    Serial.print(g);
+    Serial.print(" B: ");
+    Serial.println(b);
+
+    // Check for BLACK (all values are low)
+    if (r > 600 && g > 1000 && b > 1000) return "BLACK";
+
+    // Check for dominant color
+    if (r > g + 50 && r > b + 50) return "GREEN";
+    if (g > r + 50 && g > b + 50) return "BLUE";
+    if (b > r + 50 && b > g + 50) return "RED";
+
+    return "BLACK";  // Default to BLACK if no dominant color
 }
 
-// Function to find the most common color in the last 7 detections
+// ========== STABILIZING COLOR DETECTION ==========
 String getStableColor() {
     int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
 
-    // Count occurrences of each color
+    // Count occurrences of each color in the queue
     for (int i = 0; i < QUEUE_SIZE; i++) {
         if (colorQueue[i] == "RED") redCount++;
         else if (colorQueue[i] == "GREEN") greenCount++;
@@ -188,10 +193,22 @@ String getStableColor() {
         else if (colorQueue[i] == "BLACK") blackCount++;
     }
 
-    // Return the most frequent color
-    if (redCount >= greenCount && redCount >= blueCount && redCount >= blackCount) return "RED";
-    if (greenCount >= redCount && greenCount >= blueCount && greenCount >= blackCount) return "GREEN";
-    if (blueCount >= redCount && blueCount >= greenCount && blueCount >= blackCount) return "BLUE";
+    // Print occurrences for debugging
+    Serial.print("Color Counts -> R: ");
+    Serial.print(redCount);
+    Serial.print(" G: ");
+    Serial.print(greenCount);
+    Serial.print(" B: ");
+    Serial.print(blueCount);
+    Serial.print(" Black: ");
+    Serial.println(blackCount);
+
+    // Return the most frequent color (only if it appears in at least 50% of the queue)
+    int majorityThreshold = QUEUE_SIZE / 2;
+
+    if (redCount > majorityThreshold) return "GREEN";
+    if (greenCount > majorityThreshold) return "BLUE";
+    if (blueCount > majorityThreshold) return "RED";
     return "BLACK";  // Default to BLACK if no majority
 }
 
@@ -212,11 +229,7 @@ float getWallDistance() {
 
     duration = pulseIn(ECHO_PIN, HIGH);
     distance = (duration * 0.343) / 2;
-    
-    Serial.print("Distance to Wall: ");
-    Serial.print(distance);
-    Serial.println(" mm");
-    
+
     return distance;
 }
 
