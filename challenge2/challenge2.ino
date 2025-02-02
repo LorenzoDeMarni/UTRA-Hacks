@@ -28,7 +28,7 @@ int red = 0, green = 0, blue = 0;
 #define ECHO_PIN A5
 #define WALL_DISTANCE_THRESHOLD 200
 
-boolean black_second_time = True;
+boolean black_second_time = true;
 
 // To insure accuracy, tracks the color 5 times, see if same color appears 5 times
 #define QUEUE_SIZE 5
@@ -81,6 +81,10 @@ void loop() {
     red = getColorReading(LOW, LOW); // Read Red
     green = getColorReading(HIGH, HIGH); // Read Green
     blue = getColorReading(LOW, HIGH); // Read Blue
+
+    Serial.println(red);
+    Serial.println(green);
+    Serial.println(blue);
 
 // constantly move forward until we hit a wall
     while (detect_wall(distance) != true) {

@@ -31,6 +31,12 @@ int red = 0, green = 0, blue = 0;
 
 #define turn_value 820
 
+#define longerRuntime 0
+unsigned long startTime = 0; // Stores the start time
+unsigned long stopTime = 0;  // Stores the stop time
+unsigned long elapsedTime = 0; //total elapsed time
+bool timerRunning = false;
+
 void setup() {
     // Set motor control pins as outputs
     pinMode(EN_A, OUTPUT);
@@ -55,13 +61,47 @@ void setup() {
     //calling to pick up flag at the start
     pickUpFlag();
     
-
+    startUp(); //move into the first ring...
     Serial.begin(9600);
     
 }
 
-void loop() {
-     b
+void loop() {    
+    
+    red = getColorReading(LOW, LOW); // Read Red
+    green = getColorReading(HIGH, HIGH); // Read Green
+    blue = getColorReading(LOW, HIGH); // Read Blue
+
+    String colorNew = identifyColor(red, green, blue);
+
+    while (colorNew != "BLACK") { //keeps going forward till we detect black (not a color)
+        moveForward();
+        startTime = millis();  //we wanna track the time it takes to reach start to 'black' point
+        timerRunning = true;
+        Serial.println("Timer Started!");
+    }
+
+    stopTime = millis();
+    timerRunning = false;
+    elapsedTime = stopTime - startTime; //save travel time to a variable
+
+    if (elapsedTime > longerRuntime) {
+        longerRuntime = elapsedTime
+        turnLeft(); //need to make this a sharper turn with a parameter
+        loop();
+    }
+    //we want this if statement to check if the run time was longer than before. This will let us turn
+    //on a steeper angle (want to get to at least 180 90 is default)
+
+    else {
+        turnLeft();
+        turnLeft(); //do a 180
+        moveForward(); //make this parameter elapsedTime / 2 (midway through circle)
+        dropFlag();
+        while (true);
+    }
+    //when we reach desired state, we can return on the same line traveled and drop the flag half way
+    //which should be the center
 
 }
 
@@ -125,5 +165,41 @@ void pickUpFlag() {
     myServo.write(100);  //open
     delay(2000);  // wait 2 seconds to line up flag
 
-    myServo.write(150);  //close
+    myServo.write(150);  //close, will hold flag
+}
+
+void dropFlag() {
+    myServo.write(100); //opnes claws
+}
+
+//Starter 
+void startUp() {
+
+    red = getColorReading(LOW, LOW); // Read Red
+    green = getColorReading(HIGH, HIGH); // Read Green
+    blue = getColorReading(LOW, HIGH); // Read Blue
+
+    String color = identifyColor(red, green, blue);
+
+    while(color != "BLACK") {
+        moveForward();
+        startTime = millis();
+        timerRunning = true;
+        Serial.println("Timer Started!");
+    }
+
+    stopTime = millis();
+    timerRunning = false;
+    longerRuntime = stopTime - startTime;
+
+    turnLeft();
+    String newColor = identifyColor(red, green, blue);
+
+    while(newColor == color || newColor == "BLACK") {
+        turnLeft();
+        delay(1000);
+    }
+    //we wanna keep spinning until we find a color that isnt the same as the ring we are on or black
+    //same logic as the loop function
+    stopMotors();
 }
