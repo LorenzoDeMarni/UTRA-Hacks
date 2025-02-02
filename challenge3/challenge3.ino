@@ -209,11 +209,16 @@ String identifyColor(int r, int g, int b) {
     Serial.print(g);
     Serial.print(" B: ");
     Serial.println(b);
-    if (r>600 && g>1000 && b>1000) return "BLACK";
-    else if (r < g - 15 && r < b - 15) return "RED";
-    else if (g < r - 15 && g < b - 15) return "GREEN";
-    else if (b < r - 15 && b < g - 15) return "BLUE";
-    else return "BLACK";  // Default to BLACK if not RED, GREEN, or BLUE
+
+    // Check for BLACK (all values are low)
+    if (r < 300 && g < 300 && b < 300) return "BLACK";
+
+    // Check for dominant color
+    if (r > g + 50 && r > b + 50) return "GREEN";
+    if (g > r + 50 && g > b + 50) return "BLUE";
+    if (b > r + 50 && b > g + 50) return "RED";
+
+    return "BLACK";  // Default to BLACK if no dominant color
 }
 
 String getStableColor() {
