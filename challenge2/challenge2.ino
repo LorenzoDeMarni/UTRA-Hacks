@@ -15,11 +15,11 @@ int motorSpeedLeft = 145;
 int motorSpeedRight = 150;
 
 // change the pin values for light sensor
-#define S0 2;
-#define S1 3;
-#define S2 5;
-#define S3 4;
-#define sensorOut 12;
+#define S0 2
+#define S1 3
+#define S2 5
+#define S3 4
+#define sensorOut 12
 
 int red = 0, green = 0, blue = 0;
 
@@ -83,7 +83,7 @@ void loop() {
     blue = getColorReading(LOW, HIGH); // Read Blue
 
 // constantly move forward until we hit a wall
-    while (detect_wall(distance) != True) {
+    while (detect_wall(distance) != true) {
         // Send a 10-microsecond HIGH pulse to trigger the sensor
         digitalWrite(TRIG_PIN, LOW);
         delayMicroseconds(2);
@@ -137,15 +137,15 @@ void loop() {
 
     else if (stableColor == "BLACK" && black_second_time == False) {
         stopMotors();
-        break;
+        while (true);
     }
 
 }
 
 void moveForward() {
     Serial.println("Moving Forward...");
-    analogWrite(EN_A, motorSpeed); // Set speed
-    analogWrite(EN_B, motorSpeed);
+    analogWrite(EN_A, motorSpeedLeft); // Set speed
+    analogWrite(EN_B, motorSpeedRight);
     digitalWrite(motor1Pin1, HIGH);
     digitalWrite(motor1Pin2, LOW);
     digitalWrite(motor2Pin1, HIGH);
@@ -154,8 +154,8 @@ void moveForward() {
 
 void turnLeft() {
     Serial.println("Turning Left...");
-    analogWrite(EN_A, motorSpeed); // Set speed
-    analogWrite(EN_B, motorSpeed);
+    analogWrite(EN_A, motorSpeedLeft); // Set speed
+    analogWrite(EN_B, motorSpeedRight);
     digitalWrite(motor1Pin1, LOW);
     digitalWrite(motor1Pin2, HIGH);
     digitalWrite(motor2Pin1, HIGH);
@@ -166,8 +166,8 @@ void turnLeft() {
 
 void turnRight() {
     Serial.println("Turning Right...");
-    analogWrite(EN_A, motorSpeed); // Set speed
-    analogWrite(EN_B, motorSpeed);
+    analogWrite(EN_A, motorSpeedLeft); // Set speed
+    analogWrite(EN_B, motorSpeedRight);
     digitalWrite(motor1Pin1, HIGH);
     digitalWrite(motor1Pin2, LOW);
     digitalWrite(motor2Pin1, LOW);
@@ -189,6 +189,7 @@ String identifyColor(int r, int g, int b) {
     else if (g < r - 15 && g < b - 15) return "GREEN";
     else if (b < r - 15 && b < g - 15) return "BLUE";
     else return "BLACK";  // Default to BLACK if not RED, GREEN, or BLUE
+}
 
 int getColorReading(int s2State, int s3State) {
     digitalWrite(S2, s2State);
@@ -215,10 +216,5 @@ String getStableColor() {
 }
 
 boolean detect_wall(int distance) {
-     if (distance > 0 && distance <= WALL_DISTANCE_THRESHOLD) {
-        return True;
-    } 
-    else {
-       return False;
-    }
+     return (distance > 0 && distance <= WALL_DISTANCE_THRESHOLD);
 }
