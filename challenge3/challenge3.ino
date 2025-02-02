@@ -78,11 +78,11 @@ void loop() {
     }
     stopMotors();
 
-    // Read and process color
+    // Read and process color using your detection system
     red = getColorReading(LOW, LOW);
     green = getColorReading(HIGH, HIGH);
     blue = getColorReading(LOW, HIGH);
-    String detectedColor = identifyColorStable();
+    String detectedColor = identifyColor(red, green, blue);
 
     // Add to circular queue
     colorQueue[colorIndex] = detectedColor;
@@ -136,32 +136,11 @@ void stopMotors() {
 }
 
 // ========== COLOR DETECTION FUNCTIONS ==========
-String identifyColorStable() {
-    int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
-
-    // Take 5 readings
-    for (int i = 0; i < 5; i++) {
-        int r = getColorReading(LOW, LOW);
-        int g = getColorReading(HIGH, HIGH);
-        int b = getColorReading(LOW, HIGH);
-
-        Serial.print("Reading "); Serial.print(i);
-        Serial.print(" - R: "); Serial.print(r);
-        Serial.print(" G: "); Serial.print(g);
-        Serial.print(" B: "); Serial.println(b);
-
-        if (r > g + 10 && r > b + 10) redCount++;
-        else if (g > r + 10 && g > b + 10) greenCount++;
-        else if (b > r + 10 && b > g + 10) blueCount++;
-        else blackCount++;
-
-        delay(50);
-    }
-
-    if (redCount >= 3) return "RED";
-    if (greenCount >= 3) return "GREEN";
-    if (blueCount >= 3) return "BLUE";
-    return "BLACK";
+String identifyColor(int r, int g, int b) {
+    if (r < g - 15 && r < b - 15) return "RED";
+    else if (g < r - 15 && g < b - 15) return "GREEN";
+    else if (b < r - 15 && b < g - 15) return "BLUE";
+    else return "BLACK";  // Default to BLACK if not RED, GREEN, or BLUE
 }
 
 int getColorReading(int s2State, int s3State) {
@@ -174,17 +153,19 @@ int getColorReading(int s2State, int s3State) {
 String getStableColor() {
     int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
 
+    // Count occurrences of each color
     for (int i = 0; i < QUEUE_SIZE; i++) {
         if (colorQueue[i] == "RED") redCount++;
         else if (colorQueue[i] == "GREEN") greenCount++;
         else if (colorQueue[i] == "BLUE") blueCount++;
         else if (colorQueue[i] == "BLACK") blackCount++;
     }
-
-    if (redCount >= 3) return "RED";
-    if (greenCount >= 3) return "GREEN";
-    if (blueCount >= 3) return "BLUE";
-    return "BLACK";
+    
+    // Return the most frequent color
+    if (redCount >= greenCount && redCount >= blueCount && redCount >= blackCount) return "RED";
+    if (greenCount >= redCount && greenCount >= blueCount && greenCount >= blackCount) return "GREEN";
+    if (blueCount >= redCount && blueCount >= greenCount && blueCount >= blackCount) return "BLUE";
+    return "BLACK";  // Default to BLACK if no majority
 }
 
 // ========== WALL DETECTION FUNCTIONS ==========
