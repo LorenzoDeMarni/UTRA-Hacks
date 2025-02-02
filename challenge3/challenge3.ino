@@ -33,7 +33,7 @@ bool sequenceCompleted = false;  // Flag to stop movement after last blue
 #define QUEUE_SIZE 7
 String colorQueue[QUEUE_SIZE];  // Store last 7 detected colors
 int colorIndex = 0;
-int colorCount = 0;  // Count colors before turning right
+int validColorCount = 0;  // Counts how many valid colors detected before turning right
 
 // ========== DEBOUNCE TIMER ==========
 unsigned long lastColorTime = 0;
@@ -88,13 +88,7 @@ void loop() {
         moveForward();
         distance = getWallDistance();
     }
-    
-    // If wall detected, TURN LEFT
-    Serial.println("🧱 Wall detected! Turning left...");
     stopMotors();
-    turnLeft();
-    delay(300);  // Small delay for stability
-    return;
 
     // Read and process color using the detection system
     red = getColorReading(LOW, LOW);
@@ -133,15 +127,17 @@ void loop() {
     blinkLED();
     currentColorIndex++;
 
-    // Increment color count
-    colorCount++;
+    // ✅ Only count red, green, or blue when counting valid color detections
+    if (stableColor == "RED" || stableColor == "GREEN" || stableColor == "BLUE") {
+        validColorCount++;
+    }
 
-    // Turn RIGHT after detecting 2 colors
-    if (colorCount >= 2) {
+    // Turn RIGHT after detecting 2 **valid** colors
+    if (validColorCount >= 2) {
         Serial.println("🔄 Two colors scanned, turning right...");
         stopMotors();
         turnRight();
-        colorCount = 0;  // Reset color count after turning right
+        validColorCount = 0;  // Reset color count after turning right
     }
 
     // Check if we have detected the last BLUE
@@ -223,7 +219,7 @@ int getColorReading(int s2State, int s3State) {
 // ========== LED FUNCTION ==========
 void blinkLED() {
     Serial.println("💡 LED Blinking!");
-    digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(LED_RED, HIGH);
     delay(500);
-    digitalWrite(LED_BUILTIN, LOW);
+    digitalWrite(LED_RED, LOW);
 }
