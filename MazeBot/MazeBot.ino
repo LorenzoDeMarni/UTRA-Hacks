@@ -19,7 +19,7 @@ int red = 0, green = 0, blue = 0;
 const int trigPin = 12;
 const int echoPin = 11;
 
-#define SAMPLE_SIZE 5  // Number of samples for color detection
+#define SAMPLE_SIZE 10  // Number of samples for color detection
 String colorSamples[SAMPLE_SIZE];  // Store 5 color readings
 
 // Function to move forward
@@ -88,7 +88,7 @@ long getDistance() {
 int getColorReading(int s2State, int s3State) {
     digitalWrite(S2, s2State);
     digitalWrite(S3, s3State);
-    delay(100);  // Allow sensor to settle
+    delay(75);  // Allow sensor to settle
     return pulseIn(sensorOut, LOW);  // Measure pulse duration
 }
 
