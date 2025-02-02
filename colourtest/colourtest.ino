@@ -1,4 +1,4 @@
-// Define sensor control pins
+// ========== COLOR SENSOR PIN DEFINITIONS ==========
 #define S0 2
 #define S1 3
 #define S2 5
@@ -7,11 +7,12 @@
 
 int red = 0, green = 0, blue = 0;
 
-// Circular queue for last 5 detected colors
+// ========== COLOR DETECTION FILTER ==========
 #define QUEUE_SIZE 7
-String colorQueue[QUEUE_SIZE];  // Store last 5 colors
+String colorQueue[QUEUE_SIZE];  // Store last 7 detected colors
 int colorIndex = 0;  // Index for circular queue
 
+// ========== SETUP FUNCTION ==========
 void setup() {
     pinMode(S0, OUTPUT);
     pinMode(S1, OUTPUT);
@@ -26,12 +27,13 @@ void setup() {
     digitalWrite(S0, HIGH);
     digitalWrite(S1, LOW);
 
-    // Initialize color queue with "BLACK" to avoid errors
+    // Initialize color queue with "BLACK"
     for (int i = 0; i < QUEUE_SIZE; i++) {
         colorQueue[i] = "BLACK";
     }
 }
 
+// ========== MAIN LOOP ==========
 void loop() {
     red = getColorReading(LOW, LOW);  // Read Red
     green = getColorReading(HIGH, HIGH);  // Read Green
@@ -55,13 +57,13 @@ void loop() {
     String stableColor = getStableColor();
 
     // Print filtered stable color
-    // Serial.print("Stable Detected Color: ");
-    // Serial.println(stableColor);
+    Serial.print("Stable Detected Color: ");
+    Serial.println(stableColor);
 
     delay(100);  // Wait before next reading
 }
 
-// Reads color sensor output for Red, Green, or Blue detection
+// ========== READ COLOR SENSOR OUTPUT ==========
 int getColorReading(int s2State, int s3State) {
     digitalWrite(S2, s2State);
     digitalWrite(S3, s3State);
@@ -69,26 +71,31 @@ int getColorReading(int s2State, int s3State) {
     return pulseIn(sensorOut, LOW);  // Measure pulse duration
 }
 
-// Identifies the color based on RGB values
+// ========== COLOR CLASSIFICATION ==========
 String identifyColor(int r, int g, int b) {
-    // Serial.print("Processing Color -> R: ");
-    // Serial.print(r);
-    // Serial.print(" G: ");
-    // Serial.print(g);
-    // Serial.print(" B: ");
-    // Serial.println(b);
-    if (r>600 && g>1000 && b>1000) return "BLACK";
-    else if (r < g - 15 && r < b - 15) return "RED";
-    else if (g < r - 15 && g < b - 15) return "GREEN";
-    else if (b < r - 15 && b < g - 15) return "BLUE";
-    else return "BLACK";  // Default to BLACK if not RED, GREEN, or BLUE
+    Serial.print("Processing Color -> R: ");
+    Serial.print(r);
+    Serial.print(" G: ");
+    Serial.print(g);
+    Serial.print(" B: ");
+    Serial.println(b);
+
+    // Check for BLACK (all values are low)
+    if (r < 300 && g < 300 && b < 300) return "BLACK";
+
+    // Check for dominant color
+    if (r > g + 50 && r > b + 50) return "GREEN";
+    if (g > r + 50 && g > b + 50) return "BLUE";
+    if (b > r + 50 && b > g + 50) return "RED";
+
+    return "BLACK";  // Default to BLACK if no dominant color
 }
 
-// Function to find the most common color in the last 5 detections
+// ========== STABILIZING COLOR DETECTION ==========
 String getStableColor() {
     int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
 
-    // Count occurrences of each color
+    // Count occurrences of each color in the queue
     for (int i = 0; i < QUEUE_SIZE; i++) {
         if (colorQueue[i] == "RED") redCount++;
         else if (colorQueue[i] == "GREEN") greenCount++;
@@ -96,7 +103,7 @@ String getStableColor() {
         else if (colorQueue[i] == "BLACK") blackCount++;
     }
 
-    //Print occurrences for debugging
+    // Print occurrences for debugging
     Serial.print("Color Counts -> R: ");
     Serial.print(redCount);
     Serial.print(" G: ");
@@ -106,9 +113,11 @@ String getStableColor() {
     Serial.print(" Black: ");
     Serial.println(blackCount);
 
-    // Return the most frequent color
-    if (redCount >= greenCount && redCount >= blueCount && redCount >= blackCount) return "RED";
-    if (greenCount >= redCount && greenCount >= blueCount && greenCount >= blackCount) return "GREEN";
-    if (blueCount >= redCount && blueCount >= greenCount && blueCount >= blackCount) return "BLUE";
+    // Return the most frequent color (only if it appears in at least 50% of the queue)
+    int majorityThreshold = QUEUE_SIZE / 2;
+    
+    if (redCount > majorityThreshold) return "GREEN";
+    if (greenCount > majorityThreshold) return "BLUE";
+    if (blueCount > majorityThreshold) return "RED";
     return "BLACK";  // Default to BLACK if no majority
 }

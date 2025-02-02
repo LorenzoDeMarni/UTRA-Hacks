@@ -38,8 +38,11 @@ unsigned long stopTime = 0;
 bool timerRunning = false;  
 
 int sequence = 0;
+String stableColor = "BLACK";
+
 
 void setup() {
+    delay(5000);
     // Set motor control pins as outputs
     pinMode(EN_A, OUTPUT);
     pinMode(motor1Pin1, OUTPUT);
@@ -64,8 +67,6 @@ void setup() {
     myServo.write(150);
     delay(5000);
 
-    myServo.write(100);  
-    delay(1000);
 
     Serial.begin(9600);
 
@@ -73,9 +74,12 @@ void setup() {
     for (int i = 0; i < QUEUE_SIZE; i++) {
         colorQueue[i] = "BLACK";
     }
-    String stableColor = "BLACK";
-
+    Serial.println("Initial move forward");
     moveForward();
+    delay(3000);
+    Serial.println("After delay");
+
+
 }
 
 void loop() {   
@@ -85,24 +89,30 @@ void loop() {
     green = getColorReading(HIGH, HIGH);
     blue = getColorReading(LOW, HIGH);
     
-    String detectedColor = identifyColor(red, green, blue);
-    colorQueue[colorIndex] = detectedColor;
-    colorIndex = (colorIndex + 1) % QUEUE_SIZE;
-    stableColor = getStableColor();
-    
-    Serial.print("Stable Detected Color: ");
+    for(int i=0;i<5;i++){
+          String detectedColor = identifyColor(red, green, blue);
+          colorQueue[colorIndex] = detectedColor;
+          colorIndex = (colorIndex + 1) % QUEUE_SIZE;
+          stableColor = getStableColor();
+    }
+    Serial.println("Stable Detected Color: ");
     Serial.println(stableColor);
-    delay(50);
-    if (sequence = 0 && stableColor != "BLACK"){
-        Serial.println("Color Detected");
+    Serial.println(sequence);
+ 
+
+    if (sequence == 0 && stableColor != "BLACK"){
+      Serial.println("SEQ0: move forward ");
         stopMotors();
         delay(1000);
-        sequence = 1;
         startTime = millis();
         timerRunning = true;
         moveForward();
+        sequence = 1;
+
+
     }
-    if (sequence = 1 && stableColor == "BLACK"){
+    else if (sequence == 1 && stableColor == "BLACK"){
+      Serial.println("SEQ1");
         stopMotors();
         // stop timer
         stopTime = millis();
@@ -111,13 +121,14 @@ void loop() {
         delay(1000);
         sequence = 2;
         reverseMotors((stopTime - startTime)/2);
-        delay(500);
+        delay((stopTime - startTime)/2);
         turnLeft();
         delay(500);
         sequence = 2;
         moveForward();
     }
-    if (sequence = 2 && stableColor == "BLACK"){
+    else if (sequence == 2 && stableColor == "BLACK"){
+        Serial.println("SEQ2");
         stopMotors();
         delay(1000);
         turnLeft();
@@ -126,20 +137,24 @@ void loop() {
         sequence = 3;
         moveForward();
     }
-    if (sequence = 3 && stableColor == "BLACK"){
+    else if (sequence == 3 && stableColor == "BLACK"){
+        Serial.println("SEQ3");
         stopMotors();
         stopTime = millis();
         delay(1000);
         reverseMotors((stopTime - startTime)/2);
-        delay(500);
+        delay((stopTime - startTime)/2);
         myServo.write(100);  
-        delay(1000);
+        delay(4000);
         sequence = 4;
         
     }
-    if(sequence = 4){
-        break;  
+    else if (sequence ==4){
+      Serial.println("PLACED FLAG");
+      delay(10000);
+      
     }
+    
     
 }
 
@@ -155,29 +170,53 @@ int getColorReading(int s2State, int s3State) {
 }
 
 String identifyColor(int r, int g, int b) {
-    if (r > 600 && g > 1000 && b > 1000) return "BLACK";
-    else if (r < g - 15 && r < b - 15) return "RED";
-    else if (g < r - 15 && g < b - 15) return "GREEN";
-    else if (b < r - 15 && b < g - 15) return "BLUE";
-    else return "BLACK";
+    Serial.print("Processing Color -> R: ");
+    Serial.print(r);
+    Serial.print(" G: ");
+    Serial.print(g);
+    Serial.print(" B: ");
+    Serial.println(b);
+
+    // Check for BLACK (all values are low)
+    if (r < 300 && g < 300 && b < 300) return "BLACK";
+
+    // Check for dominant color
+    if (r > g + 50 && r > b + 50) return "GREEN";
+    if (g > r + 50 && g > b + 50) return "BLUE";
+    if (b > r + 50 && b > g + 50) return "RED";
+
+    return "BLACK";  // Default to BLACK if no dominant color
 }
 
 String getStableColor() {
     int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
-    
+
+    // Count occurrences of each color in the queue
     for (int i = 0; i < QUEUE_SIZE; i++) {
         if (colorQueue[i] == "RED") redCount++;
         else if (colorQueue[i] == "GREEN") greenCount++;
         else if (colorQueue[i] == "BLUE") blueCount++;
-        else blackCount++;
+        else if (colorQueue[i] == "BLACK") blackCount++;
     }
-    
-    if (redCount >= greenCount && redCount >= blueCount && redCount >= blackCount) return "RED";
-    if (greenCount >= redCount && greenCount >= blueCount && greenCount >= blackCount) return "GREEN";
-    if (blueCount >= redCount && blueCount >= greenCount && blueCount >= blackCount) return "BLUE";
-    return "BLACK";
-}
 
+    // Print occurrences for debugging
+    Serial.print("Color Counts -> R: ");
+    Serial.print(redCount);
+    Serial.print(" G: ");
+    Serial.print(greenCount);
+    Serial.print(" B: ");
+    Serial.print(blueCount);
+    Serial.print(" Black: ");
+    Serial.println(blackCount);
+
+    // Return the most frequent color (only if it appears in at least 50% of the queue)
+    int majorityThreshold = QUEUE_SIZE / 2;
+    
+    if (redCount > majorityThreshold) return "GREEN";
+    if (greenCount > majorityThreshold) return "BLUE";
+    if (blueCount > majorityThreshold) return "RED";
+    return "BLACK";  // Default to BLACK if no majority
+}
 // ========== MOVEMENT FUNCTIONS ==========
 void moveForward() {
     Serial.println("Moving Forward...");
@@ -217,6 +256,18 @@ void turnLeft() {
     digitalWrite(motor1Pin2, HIGH);
     digitalWrite(motor2Pin1, HIGH);
     digitalWrite(motor2Pin2, LOW);
+    delay(turn_value);
+    stopMotors();
+}
+
+void turnRight() {
+    Serial.println("Turning Left...");
+    analogWrite(EN_A, motorSpeedLeft);
+    analogWrite(EN_B, motorSpeedRight);
+    digitalWrite(motor2Pin1, LOW);
+    digitalWrite(motor2Pin2, HIGH);
+    digitalWrite(motor1Pin1, HIGH);
+    digitalWrite(motor1Pin2, LOW);
     delay(turn_value);
     stopMotors();
 }
