@@ -29,6 +29,9 @@ const String colorSequence[] = {"RED", "GREEN", "BLUE", "GREEN", "BLUE"};
 int currentColorIndex = 0;  // Keeps track of expected color
 bool sequenceCompleted = false;  // Flag to stop movement after last blue
 
+// ========== LED ==========
+#define LED_PIN A2
+
 // ========== COLOR DETECTION FILTER ==========
 #define QUEUE_SIZE 7
 String colorQueue[QUEUE_SIZE];  // Store last 7 detected colors
@@ -55,6 +58,9 @@ void setup() {
     pinMode(ECHO_PIN, INPUT);
     Serial.println("Ultrasonic Sensor Initialized");
 
+    // LED Setup
+    pinMode(LED_PIN, ANALOG);
+    
     // Color Sensor Setup
     pinMode(S0, OUTPUT);
     pinMode(S1, OUTPUT);
@@ -318,7 +324,7 @@ float getWallDistance() {
 // ========== LED FUNCTION ==========
 void blinkLED() {
     Serial.println("💡 LED Blinking!");
-    digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(LED_PIN, HIGH);
     delay(500);
-    digitalWrite(LED_BUILTIN, LOW);
+    digitalWrite(LED_PIN, LOW);
 }
