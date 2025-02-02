@@ -40,7 +40,7 @@ bool timerRunning = false;
 int sequence = 0;
 String stableColor = "BLACK";
 String detectedColor = "BLACK";
-
+int counter=0;
 
 
 void setup() {
@@ -90,87 +90,31 @@ void setup() {
 void loop() {   
     // Read color values
     
-    red = getColorReading(LOW, LOW);  
-    green = getColorReading(HIGH, HIGH);
-    blue = getColorReading(LOW, HIGH);
+    red = getColorReading(LOW, LOW); // Read Red
+    green = getColorReading(HIGH, HIGH); // Read Green
+    blue = getColorReading(LOW, HIGH); // Read Blue
+
     
-    detectedColor = identifyColor(red, green, blue);
-    // colorQueue[colorIndex] = detectedColor;
-    // colorIndex = (colorIndex + 1) % QUEUE_SIZE;
-    // stableColor = getStableColor();
-    Serial.println("Stable Detected Color: ");
-    Serial.println(detectedColor);
-    Serial.println(sequence);
-    delay(50);
+    String colorNew = identifyColor(red, green, blue);
 
-    if (sequence == 0 && detectedColor != "BLACK"){
-      Serial.println("SEQ0");
-        stopMotors();
-        delay(200);
-        startTime = millis();
-        Serial.println("TIMER START");
-        Serial.println(startTime);
-        timerRunning = true;
-        moveForward();
-        delay(100);
-        sequence = 1;
-
-
-    }
-    else if (sequence == 1 && detectedColor == "BLACK"){
-        Serial.println("SEQ1");
-        stopMotors();
-        // stop timer
-        stopTime = millis();
-        timerRunning = false;
-        Serial.println("TIMER STOP: ");
-        Serial.println(stopTime);
-
-        delay(1000);
-        reverseMotors((stopTime - startTime)/2);
-
+    while (colorNew == "BLACK" || colorNew == stableColor) {
         turnLeft();
-        delay(500);
-        sequence = 2;
         moveForward();
         delay(500);
     }
-    else if (sequence == 2 && detectedColor == "BLACK"){
-        Serial.println("SEQ2");
-        stopMotors();
-        delay(1000);
-        turnLeft();
-        turnLeft();
-        startTime = millis();
-        Serial.println("TIMER START");
-        Serial.println(startTime);
 
-        sequence = 3;
-        
-        moveForward();
-        delay(500);
+    if(counter == 5) {
+        dropFlag();
+        while(true);
     }
-    else if (sequence == 3 && detectedColor == "BLACK"){
-        Serial.println("SEQ3");
-        stopMotors();
-        stopTime = millis();
-        delay(1000);
-        reverseMotors((stopTime - startTime)/2);
+    stableColor = colorNew;
+    counter++;
 
-        Serial.println("TIMER STOP: ");
-        Serial.println(stopTime);
-        delay(1000);
-
-        myServo.write(100);  
-        delay(1000);
-        sequence = 4;
-        Serial.println("PLACED FLAG");
-        delay(10000);
-        
-    }
     
 }
-
+void dropFlag() {
+    myServo.write(100); //opnes claws
+}
 // ========== COLOR DETECTION FUNCTIONS ==========
 
 
