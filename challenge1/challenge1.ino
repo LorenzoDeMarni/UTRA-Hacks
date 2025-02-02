@@ -32,8 +32,10 @@ int detectedRings = 0;
 bool reachedCenter = false;
 
 // ========== MOVEMENT CONFIGURATION ==========
-#define turn_value 700  // Adjust turn time for accuracy
-#define adjust_angle 300  // Small angle adjustment to avoid continuous detection
+#define turn_value 800  // Adjust turn time for accuracy
+#define adjust_angle 500  // Increased small angle adjustment
+#define move_forward_distance 1000  // Increased forward movement distance
+#define reverse_distance 800  // Increased reverse distance
 
 void setup() {
     delay(5000);
@@ -60,7 +62,6 @@ void setup() {
     delay(2000);
 
     Serial.begin(9600);
-
     Serial.println("Starting Challenge...");
     moveForward();
 }
@@ -99,16 +100,18 @@ void loop() {
     }
 
     if (detectedColor == currentColor) {
-        // If robot keeps seeing the same color, adjust slightly
+        // If robot keeps seeing the same color, adjust slightly and move forward further
         Serial.println("⚠️ Adjusting to find next color...");
         turnLeftSmall();
+        moveForward();
     }
 
     if (detectedColor == previousColor) {
-        // If robot moves back into a previous color, reverse and adjust
+        // If robot moves back into a previous color, reverse further and adjust
         Serial.println("⚠️ Moved Backwards! Adjusting...");
-        reverseMotors(400);
+        reverseMotors(reverse_distance);
         turnRight();
+        moveForward();
     }
 
     moveForward();
@@ -148,6 +151,7 @@ void moveForward() {
     digitalWrite(motor1Pin2, LOW);
     digitalWrite(motor2Pin1, HIGH);
     digitalWrite(motor2Pin2, LOW);
+    delay(move_forward_distance);
 }
 
 void stopMotors() {
