@@ -77,7 +77,7 @@ String identifyColor(int r, int g, int b) {
     // Serial.print(g);
     // Serial.print(" B: ");
     // Serial.println(b);
-    if (r>600 && g>1000 & b>1000) return "BLACK";
+    if (r>600 && g>1000 && b>1000) return "BLACK";
     else if (r < g - 15 && r < b - 15) return "RED";
     else if (g < r - 15 && g < b - 15) return "GREEN";
     else if (b < r - 15 && b < g - 15) return "BLUE";
