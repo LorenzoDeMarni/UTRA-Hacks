@@ -25,8 +25,9 @@ int red = 0, green = 0, blue = 0;
 #define WALL_DISTANCE_THRESHOLD 200  // 20 cm
 
 // ========== SEQUENCE TRACKING ==========
-const String colorSequence[] = {"RED", "BLUE", "GREEN", "BLUE", "GREEN"};
+const String colorSequence[] = {"RED", "GREEN", "BLUE", "GREEN", "BLUE"};
 int currentColorIndex = 0;  // Keeps track of expected color
+bool sequenceCompleted = false;  // Flag to stop movement after last blue
 
 // ========== COLOR DETECTION FILTER ==========
 #define QUEUE_SIZE 5
@@ -73,6 +74,11 @@ void setup() {
 
 // ========== MAIN LOOP ==========
 void loop() {
+    if (sequenceCompleted) {
+        stopMotors();
+        return;  // Prevents further execution after sequence completion
+    }
+
     long duration;
     float distance = 0.0;
 
@@ -119,6 +125,13 @@ void loop() {
     Serial.println(stableColor);
     blinkLED();
     currentColorIndex++;
+
+    // Check if we have detected the last BLUE
+    if (currentColorIndex == 5) {
+        Serial.println("🚀 Sequence Completed! Stopping Robot.");
+        stopMotors();
+        sequenceCompleted = true;
+    }
 }
 
 // ========== MOVEMENT FUNCTIONS ==========
@@ -201,7 +214,7 @@ float getWallDistance() {
 // ========== LED FUNCTION ==========
 void blinkLED() {
     Serial.println("💡 LED Blinking!");
-    digitalWrite(LED_RED, HIGH);
+    digitalWrite(LED_BUILTIN, HIGH);
     delay(500);
-    digitalWrite(LED_RED, LOW);
+    digitalWrite(LED_BUILTIN, LOW);
 }
