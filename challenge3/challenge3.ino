@@ -163,11 +163,17 @@ int getColorReading(int s2State, int s3State) {
 
 // Improved Color Classification
 String identifyColor(int r, int g, int b) {
-    if (r > 600 && g > 1000 && b > 1000) return "BLACK";
-    if (r > g + 15 && r > b + 15) return "RED";
-    if (g > r + 15 && g > b + 15) return "GREEN";
-    if (b > r + 15 && b > g + 15) return "BLUE";
-    return "BLACK";
+    // Serial.print("Processing Color -> R: ");
+    // Serial.print(r);
+    // Serial.print(" G: ");
+    // Serial.print(g);
+    // Serial.print(" B: ");
+    // Serial.println(b);
+    if (r>600 && g>1000 & b>1000) return "BLACK";
+    else if (r < g - 15 && r < b - 15) return "RED";
+    else if (g < r - 15 && g < b - 15) return "GREEN";
+    else if (b < r - 15 && b < g - 15) return "BLUE";
+    else return "BLACK";  // Default to BLACK if not RED, GREEN, or BLUE
 }
 
 // Function to find the most common color in the last 7 detections
