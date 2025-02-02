@@ -37,6 +37,8 @@ unsigned long startTime = 0;
 unsigned long stopTime = 0;   
 bool timerRunning = false;  
 
+int sequence = 0;
+
 void setup() {
     // Set motor control pins as outputs
     pinMode(EN_A, OUTPUT);
@@ -71,6 +73,9 @@ void setup() {
     for (int i = 0; i < QUEUE_SIZE; i++) {
         colorQueue[i] = "BLACK";
     }
+    String stableColor = "BLACK";
+
+    moveForward();
 }
 
 void loop() {   
@@ -83,14 +88,42 @@ void loop() {
     String detectedColor = identifyColor(red, green, blue);
     colorQueue[colorIndex] = detectedColor;
     colorIndex = (colorIndex + 1) % QUEUE_SIZE;
-    String stableColor = getStableColor();
+    stableColor = getStableColor();
     
     Serial.print("Stable Detected Color: ");
     Serial.println(stableColor);
-    moveForward();
-    if (stableColor == "BLACK"){
+    delay(50);
+    if (sequence = 0 && stableColor != "BLACK"){
         Serial.println("Color Detected");
         stopMotors();
+        delay(1000);
+        sequence = 1;
+        startTime = millis();
+        timerRunning = true;
+        moveForward();
+    }
+    if (sequence = 1 && stableColor == "BLACK"){
+        stopMotors();
+        // stop timer
+        stopTime = millis();
+        timerRunning = false;
+
+        delay(1000);
+        sequence = 2;
+        reverseMotors((stopTime - startTime)/2);
+        delay(500);
+        turnLeft();
+        delay(500);
+        sequence = 2;
+        moveForward();
+    }
+    if (sequence = 2 && stableColor == "BLACK"){
+        stopMotors();
+        delay(1000);
+        sequence = 3;
+        turnLeft();
+        delay(500);
+        moveForward();
     }
     
 }
