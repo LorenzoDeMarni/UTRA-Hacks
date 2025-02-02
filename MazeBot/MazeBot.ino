@@ -132,6 +132,30 @@ void setup() {
     }
 
 }
+//ChatGPT find Mode of String Array
+String findMode(String arr[]) {
+    int maxCount = 0;
+    String modeValue = "";
+
+    for (int i = 0; i < 5; i++) {
+        int count = 0;
+
+        // Count occurrences of arr[i]
+        for (int j = 0; j < 5; j++) {
+            if (arr[i] == arr[j]) {
+                count++;
+            }
+        }
+
+        // Update mode if a higher count is found
+        if (count > maxCount) {
+            maxCount = count;
+            modeValue = arr[i];
+        }
+    }
+
+    return modeValue;
+}
 
 void loop() {
     long distance = getDistance();
@@ -140,7 +164,7 @@ void loop() {
     colorIndex = (colorIndex + 1) % QUEUE_SIZE;  // Move to next index
 
     // Get most frequent color from queue
-    String stableColor = getStableColor();
+    String stableColor = findMode(colorQueue);
 
     // Print filtered color
     Serial.print("Stable Detected Color: ");
@@ -158,17 +182,17 @@ void loop() {
         
         // Read color after stopping
         // array with 5 items
-        String arr[5];
+        
         for(int i=0;i<5;i++){
           red = getColorReading(LOW, LOW); // Read Red
           green = getColorReading(HIGH, HIGH); // Read Green
           blue = getColorReading(LOW, HIGH); // Read Blue
     
-          String detectedColor = identifyColor(red, green, blue);
-          arr[i]=detectedColor
+          String detectedColor = detectColor(red, green, blue);
+          colorQueue[i]=detectedColor
         }
 
-        String color = detectColor();
+        String color = findMode();
         Serial.print("Detected Tile Color: ");
         Serial.println(color);
 
@@ -176,15 +200,15 @@ void loop() {
 
         // Decision-making based on color
         if (color == "Red") {
-            Serial.println("Turning left.");
+            Serial.println("U-Turn");
             turnLeft(180);
         }
         else if (color == "Blue") {
-            Serial.println("Turning right.");
+            Serial.println("Turn Left");
             turnRight(180);
         }
         else if (color == "Green") {
-            Serial.println("Reversing.");
+            Serial.println("Turn Right");
             moveBackward(180);
             delay(700);  // Reverse time
         }
