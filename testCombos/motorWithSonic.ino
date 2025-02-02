@@ -14,7 +14,7 @@ int motorSpeedRight = 150;
 // Ultra sonic sensor
 #define TRIG_PIN A4
 #define ECHO_PIN A5
-#define WALL_DISTANCE_THRESHOLD 200
+#define WALL_DISTANCE_THRESHOLD 300
 
 void setup() {
     pinMode(TRIG_PIN, OUTPUT);

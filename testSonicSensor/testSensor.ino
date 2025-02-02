@@ -1,6 +1,6 @@
 #define TRIG_PIN A0
 #define ECHO_PIN A1
-#define WALL_DISTANCE_THRESHOLD 100
+#define WALL_DISTANCE_THRESHOLD 200
 
 void setup() {
     pinMode(TRIG_PIN, OUTPUT);
