@@ -28,13 +28,13 @@ int red = 0, green = 0, blue = 0;
 const String colorSequence[] = {"RED", "BLUE", "GREEN", "BLUE", "GREEN"};
 int currentColorIndex = 0;  // Keeps track of expected color
 
-// ========== TURNING TIME ==========
-#define TURN_VALUE 700
-
 // ========== COLOR DETECTION FILTER ==========
 #define QUEUE_SIZE 5
 String colorQueue[QUEUE_SIZE];  // Store last 5 detected colors
 int colorIndex = 0;
+
+// ========== DEBOUNCE TIMER ==========
+unsigned long lastColorTime = 0;
 
 // ========== SETUP FUNCTION ==========
 void setup() {
@@ -91,6 +91,17 @@ void loop() {
     // Get the most stable color
     String stableColor = getStableColor();
 
+    // Print detected color
+    Serial.print("Detected Color: ");
+    Serial.println(stableColor);
+
+    // Debounce logic: Ignore colors detected too soon after the last one
+    if (millis() - lastColorTime < 500) {
+        Serial.println("⏳ Waiting for color to stabilize...");
+        return;
+    }
+    lastColorTime = millis();  // Update last color detection time
+
     // Ignore if not in sequence
     if (stableColor != colorSequence[currentColorIndex]) {
         Serial.print("❌ Ignoring out-of-sequence color: ");
@@ -98,14 +109,11 @@ void loop() {
         return;
     }
 
-    // If the color is correct, blink LED and move to next step in sequence
+    // If the color is correct, print and move to next step in sequence
     Serial.print("✅ Correct color detected: ");
     Serial.println(stableColor);
     blinkLED();
     currentColorIndex++;
-
-    // Continue moving
-    loop();
 }
 
 // ========== MOVEMENT FUNCTIONS ==========
@@ -119,30 +127,6 @@ void moveForward() {
     digitalWrite(motor2Pin2, LOW);
 }
 
-void turnLeft() {
-    Serial.println("Turning Left...");
-    analogWrite(EN_A, motorSpeedLeft);
-    analogWrite(EN_B, motorSpeedRight);
-    digitalWrite(motor1Pin1, LOW);
-    digitalWrite(motor1Pin2, HIGH);
-    digitalWrite(motor2Pin1, HIGH);
-    digitalWrite(motor2Pin2, LOW);
-    delay(TURN_VALUE);
-    stopMotors();
-}
-
-void turnRight() {
-    Serial.println("Turning Right...");
-    analogWrite(EN_A, motorSpeedLeft);
-    analogWrite(EN_B, motorSpeedRight);
-    digitalWrite(motor1Pin1, HIGH);
-    digitalWrite(motor1Pin2, LOW);
-    digitalWrite(motor2Pin1, LOW);
-    digitalWrite(motor2Pin2, HIGH);
-    delay(TURN_VALUE);
-    stopMotors();
-}
-
 void stopMotors() {
     Serial.println("Stopping Motors...");
     digitalWrite(motor1Pin1, LOW);
@@ -153,9 +137,25 @@ void stopMotors() {
 
 // ========== COLOR DETECTION FUNCTIONS ==========
 String identifyColor(int r, int g, int b) {
-    if (r < g - 15 && r < b - 15) return "RED";
-    else if (g < r - 15 && g < b - 15) return "GREEN";
-    else if (b < r - 15 && b < g - 15) return "BLUE";
+    int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
+
+    // Take 5 readings and count occurrences
+    for (int i = 0; i < 5; i++) {
+        int rVal = getColorReading(LOW, LOW);
+        int gVal = getColorReading(HIGH, HIGH);
+        int bVal = getColorReading(LOW, HIGH);
+
+        if (rVal < gVal - 15 && rVal < bVal - 15) redCount++;
+        else if (gVal < rVal - 15 && gVal < bVal - 15) greenCount++;
+        else if (bVal < rVal - 15 && bVal < gVal - 15) blueCount++;
+        else blackCount++;
+        
+        delay(50);
+    }
+
+    if (redCount > greenCount && redCount > blueCount) return "RED";
+    if (greenCount > redCount && greenCount > blueCount) return "GREEN";
+    if (blueCount > redCount && blueCount > greenCount) return "BLUE";
     return "BLACK";
 }
 
@@ -176,9 +176,9 @@ String getStableColor() {
         else if (colorQueue[i] == "BLACK") blackCount++;
     }
 
-    if (redCount >= greenCount && redCount >= blueCount && redCount >= blackCount) return "RED";
-    if (greenCount >= redCount && greenCount >= blueCount && greenCount >= blackCount) return "GREEN";
-    if (blueCount >= redCount && blueCount >= greenCount && blueCount >= blackCount) return "BLUE";
+    if (redCount >= 3) return "RED";
+    if (greenCount >= 3) return "GREEN";
+    if (blueCount >= 3) return "BLUE";
     return "BLACK";
 }
 
@@ -210,7 +210,7 @@ float getWallDistance() {
 // ========== LED FUNCTION ==========
 void blinkLED() {
     Serial.println("💡 LED Blinking!");
-    digitalWrite(LED_PIN, HIGH);
+    digitalWrite(LED_RED, HIGH);
     delay(500);
-    digitalWrite(LED_PIN, LOW);
+    digitalWrite(LED_RED, LOW);
 }
