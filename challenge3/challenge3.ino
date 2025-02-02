@@ -102,7 +102,7 @@ void checkColorSequence() {
 
     // Ignore colors that are NOT in the sequence
     if (detectedColor != colorSequence[currentColorIndex]) {
-        Serial.print("❌ Ignoring color (not in sequence): ");
+        Serial.print("Ignoring color (not in sequence): ");
         Serial.println(detectedColor);
         return;
     }
@@ -110,7 +110,7 @@ void checkColorSequence() {
     // First Red detection
     if (detectedColor == "Red") {
         if (!firstRedDetected) {
-            Serial.println("✅ First Red detected! Blinking LED.");
+            Serial.println("First Red detected! Blinking LED.");
             blinkLED();
             firstRedDetected = true;
             currentColorIndex++;  // Move to next color in sequence (Blue)
@@ -128,7 +128,7 @@ void checkColorSequence() {
             lastBlueExitTime = currentTime;
             lastBlueExitDistance = estimatedDistance;
         } else if (timeSinceLastBlue > 5000 && distanceSinceLastBlue > 20) {
-            Serial.println("✅ New Blue region detected!");
+            Serial.println("New Blue region detected!");
             blinkLED();
             lastBlueExitTime = currentTime;
             lastBlueExitDistance = estimatedDistance;
@@ -148,13 +148,13 @@ void checkColorSequence() {
             lastGreenExitTime = currentTime;
             lastGreenExitDistance = estimatedDistance;
         } else if (timeSinceLastGreen > 5000 && distanceSinceLastGreen > 20) {
-            Serial.println("✅ New Green region detected!");
+            Serial.println("New Green region detected!");
             blinkLED();
             lastGreenExitTime = currentTime;
             lastGreenExitDistance = estimatedDistance;
             currentColorIndex++;
         } else {
-            Serial.println("⚠️ False Negative Green - Skipping.");
+            Serial.println("False Negative Green - Skipping.");
         }
     }
 }
