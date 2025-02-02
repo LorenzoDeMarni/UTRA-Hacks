@@ -183,7 +183,7 @@ void loop() {
       }
     }
   }
-  else if ((rand() % 10) == 1) {
+  else if ((rand() % 20) == 1) {
     turnLeft(820);
     if (!detect_wall(distance)) {
       moveForward();
@@ -192,7 +192,7 @@ void loop() {
       turnRight(820);
     }
   } 
-  else if ((rand() % 10) == 2) {
+  else if ((rand() % 20) == 2) {
     turnRight(820);
     if (!detect_wall(distance)) {
       moveForward();
