@@ -64,6 +64,11 @@ void setup() {
     digitalWrite(S0, HIGH);
     digitalWrite(S1, LOW);
     Serial.println("Color Sensor Initialized");
+
+    // Initialize color queue with "BLACK"
+    for (int i = 0; i < QUEUE_SIZE; i++) {
+        colorQueue[i] = "BLACK";
+    }
 }
 
 // ========== MAIN LOOP ==========
@@ -136,18 +141,18 @@ void stopMotors() {
 }
 
 // ========== COLOR DETECTION FUNCTIONS ==========
-String identifyColor(int r, int g, int b) {
-    if (r < g - 15 && r < b - 15) return "RED";
-    else if (g < r - 15 && g < b - 15) return "GREEN";
-    else if (b < r - 15 && b < g - 15) return "BLUE";
-    else return "BLACK";  // Default to BLACK if not RED, GREEN, or BLUE
-}
-
 int getColorReading(int s2State, int s3State) {
     digitalWrite(S2, s2State);
     digitalWrite(S3, s3State);
     delay(100);
     return pulseIn(sensorOut, LOW);
+}
+
+String identifyColor(int r, int g, int b) {
+    if (r < g - 15 && r < b - 15) return "RED";
+    else if (g < r - 15 && g < b - 15) return "GREEN";
+    else if (b < r - 15 && b < g - 15) return "BLUE";
+    else return "BLACK";  // Default to BLACK if not RED, GREEN, or BLUE
 }
 
 String getStableColor() {
@@ -160,7 +165,7 @@ String getStableColor() {
         else if (colorQueue[i] == "BLUE") blueCount++;
         else if (colorQueue[i] == "BLACK") blackCount++;
     }
-    
+
     // Return the most frequent color
     if (redCount >= greenCount && redCount >= blueCount && redCount >= blackCount) return "RED";
     if (greenCount >= redCount && greenCount >= blueCount && greenCount >= blackCount) return "GREEN";
