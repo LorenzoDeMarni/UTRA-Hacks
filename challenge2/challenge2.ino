@@ -99,8 +99,6 @@ void loop() {
     red = getColorReading(LOW, LOW);  
     green = getColorReading(HIGH, HIGH);
     blue = getColorReading(LOW, HIGH);
-    delay(50);
-    Serial.println("Moving forward.");
 
     if (distance < 30) {
         Serial.println("Wall detected! Stopping.");

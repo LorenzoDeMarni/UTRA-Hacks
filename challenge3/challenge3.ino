@@ -7,8 +7,8 @@
 #define EN_B 10        // PWM speed control for Left
 
 // ========== MOTOR SPEED ==========
-int motorSpeedLeft = 145;  
-int motorSpeedRight = 150;
+int motorSpeedLeft = 75;  
+int motorSpeedRight = 75;
 
 // ========== COLOR SENSOR PIN DEFINITIONS ==========
 #define S0 2
@@ -321,3 +321,4 @@ void blinkLED() {
   digitalWrite(LED_PIN, LOW);
   moveForward();
 }
+
