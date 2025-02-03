@@ -7,8 +7,8 @@
 #define EN_B 10        // PWM speed control for Left
 
 // ========== MOTOR SPEED ==========
-int motorSpeedLeft = 145;  
-int motorSpeedRight = 150;
+int motorSpeedLeft = 75;  
+int motorSpeedRight = 75;
 
 // ========== COLOR SENSOR PIN DEFINITIONS ==========
 #define S0 2
@@ -28,18 +28,29 @@ int red = 0, green = 0, blue = 0;
 const String colorSequence[] = {"RED", "GREEN", "BLUE", "GREEN", "BLUE"};
 int currentColorIndex = 0;  // Keeps track of expected color
 bool sequenceCompleted = false;  // Flag to stop movement after last blue
+int mappedX[] = {0, 0, 0, 0, 0, 0, 0};
+int mappedY[] = {0, 0, 0, 0, 0, 0, 0};
+int map_index = 0;
+int x = 0;
+int y = 0;
+int dir = 1; // 1 = +y, 2 = +x, 3 = -y, 4 = -x
+
+// ========== LED ==========
+#define LED_PIN A2
+#define LED_EXTRA_PIN A0
 
 // ========== COLOR DETECTION FILTER ==========
 #define QUEUE_SIZE 7
 String colorQueue[QUEUE_SIZE];  // Store last 7 detected colors
 int colorIndex = 0;
-int colorCount = 0;  // Count colors before turning right
 
 // ========== DEBOUNCE TIMER ==========
 unsigned long lastColorTime = 0;
 
 // ========== SETUP FUNCTION ==========
 void setup() {
+    // Setting random seed
+    randomSeed(analogRead(0));
     // Motor Setup
     pinMode(EN_A, OUTPUT);
     pinMode(EN_B, OUTPUT);
@@ -56,6 +67,10 @@ void setup() {
     pinMode(ECHO_PIN, INPUT);
     Serial.println("Ultrasonic Sensor Initialized");
 
+    // LED Setup
+    pinMode(LED_PIN, OUTPUT);
+    pinMode(LED_EXTRA_PIN, OUTPUT);
+
     // Color Sensor Setup
     pinMode(S0, OUTPUT);
     pinMode(S1, OUTPUT);
@@ -66,6 +81,7 @@ void setup() {
     digitalWrite(S0, HIGH);
     digitalWrite(S1, LOW);
     Serial.println("Color Sensor Initialized");
+    digitalWrite(LED_EXTRA_PIN, HIGH);
 
     // Initialize color queue with "BLACK"
     for (int i = 0; i < QUEUE_SIZE; i++) {
@@ -75,93 +91,159 @@ void setup() {
 
 // ========== MAIN LOOP ==========
 void loop() {
-    if (sequenceCompleted) {
-        stopMotors();
-        return;  // Prevents further execution after sequence completion
-    }
+  if (sequenceCompleted) {
+      stopMotors();
+      return;  // Prevents further execution after sequence completion
+  }
 
-    long duration;
-    float distance = 0.0;
+  long duration;
+  float distance = 0.0;
+  moveForward();
+  if (dir == 1) {
+    y += 1;
+  }
+  else if (dir == 2) {
+    x += 1;
+  }
+  else if (dir == 3) {
+    y -= 1;
+  }
+  else {
+    x -= 1;
+  }
+  distance = getWallDistance();
 
-    // Move forward until a wall is detected
-    while (!detect_wall(distance)) {
-        moveForward();
-        distance = getWallDistance();
-    }
+  // Read and process color using the detection system
+  red = getColorReading(LOW, LOW);
+  green = getColorReading(HIGH, HIGH);
+  blue = getColorReading(LOW, HIGH);
+  String detectedColor = identifyColor(red, green, blue);
+
+  // Add to circular queue
+  colorQueue[colorIndex] = detectedColor;
+  colorIndex = (colorIndex + 1) % QUEUE_SIZE;
+
+  // Print detected color
+  Serial.print("Detected Color: ");
+  Serial.println(detectedColor);
+
+  // Ignore if not in sequence
+  if (detectedColor != colorSequence[currentColorIndex]) {
+    Serial.print("❌ Ignoring out-of-sequence color: ");
+    Serial.println(detectedColor);
     
-    // If wall detected, TURN LEFT
-    Serial.println("🧱 Wall detected! Turning left...");
+  }
+  else {
+    int cur = 0;
+    int t = 1;
+    while(cur < 7) {
+      if ((mappedX[cur] + 1) > x && (mappedX[cur] - 1) < x) {
+        if ((mappedY[cur] + 1) > y && (mappedY[cur] - 1) < y) {
+          t = 0;
+        }
+      }
+      cur ++;
+    }
+    if (t == 1) {
+      Serial.print("✅ Correct color detected: ");
+      Serial.println(detectedColor);
+      blinkLED();
+      currentColorIndex += 1;
+      mappedX[map_index] = x;
+      mappedY[map_index] = y;
+      map_index += 1;
+    }
+  }
+
+  // Check if we have detected the last BLUE
+  if (currentColorIndex == 5) {
+    Serial.println("🚀 Sequence Completed! Stopping Robot.");
     stopMotors();
-    turnLeft();
-    delay(300);  // Small delay for stability
-    return;
+    sequenceCompleted = true;
+    while(true);
+  }
 
-    // Read and process color using the detection system
-    red = getColorReading(LOW, LOW);
-    green = getColorReading(HIGH, HIGH);
-    blue = getColorReading(LOW, HIGH);
-    String detectedColor = identifyColor(red, green, blue);
-
-    // Add to circular queue
-    colorQueue[colorIndex] = detectedColor;
-    colorIndex = (colorIndex + 1) % QUEUE_SIZE;
-
-    // Get the most stable color
-    String stableColor = getStableColor();
-
-    // Print detected color
-    Serial.print("Detected Color: ");
-    Serial.println(stableColor);
-
-    // Debounce logic: Ignore colors detected too soon after the last one
-    if (millis() - lastColorTime < 500) {
-        Serial.println("⏳ Waiting for color to stabilize...");
-        return;
+  stopMotors();
+  if (detect_wall(distance)) {
+    int random = rand() % 2;
+    if (random == 1) {
+      turnRight(820);
+      int distRand = getWallDistance();
+      if(detect_wall(distance)) {
+        turnRight(1640);
+        if(detect_wall(distance)) { turnRight(820); }
+      }
     }
-    lastColorTime = millis();  // Update last color detection time
-
-    // Ignore if not in sequence
-    if (stableColor != colorSequence[currentColorIndex]) {
-        Serial.print("❌ Ignoring out-of-sequence color: ");
-        Serial.println(stableColor);
-        return;
+    else if (random == 0) {
+      turnLeft(820);
+      int distRand = getWallDistance();
+      if(detect_wall(distance)) {
+        turnLeft(1640);
+        if(detect_wall(distance)) { turnLeft(820); }
+      }
     }
-
-    // If the color is correct, print and move to next step in sequence
-    Serial.print("✅ Correct color detected: ");
-    Serial.println(stableColor);
-    blinkLED();
-    currentColorIndex++;
-
-    // Increment color count
-    colorCount++;
-
-    // Turn RIGHT after detecting 2 colors
-    if (colorCount >= 2) {
-        Serial.println("🔄 Two colors scanned, turning right...");
-        stopMotors();
-        turnRight();
-        colorCount = 0;  // Reset color count after turning right
+  }
+  else if ((rand() % 20) == 1) {
+    turnLeft(820);
+    if (!detect_wall(distance)) {
+      moveForward();
     }
-
-    // Check if we have detected the last BLUE
-    if (currentColorIndex == 5) {
-        Serial.println("🚀 Sequence Completed! Stopping Robot.");
-        stopMotors();
-        sequenceCompleted = true;
-        while(true);  // Stop the infinite loop
+    else {
+      turnRight(820);
     }
+  } 
+  else if ((rand() % 20) == 2) {
+    turnRight(820);
+    if (!detect_wall(distance)) {
+      moveForward();
+    }
+    else {
+      turnLeft(820);
+    }
+  }
 }
 
 // ========== MOVEMENT FUNCTIONS ==========
 void moveForward() {
-    Serial.println("Moving Forward...");
-    analogWrite(EN_A, motorSpeedLeft);
-    analogWrite(EN_B, motorSpeedRight);
-    digitalWrite(motor1Pin1, HIGH);
-    digitalWrite(motor1Pin2, LOW);
-    digitalWrite(motor2Pin1, HIGH);
-    digitalWrite(motor2Pin2, LOW);
+  Serial.println("Moving Forward...");
+  analogWrite(EN_A, motorSpeedLeft);
+  analogWrite(EN_B, motorSpeedRight);
+  digitalWrite(motor1Pin1, HIGH);
+  digitalWrite(motor1Pin2, LOW);
+  digitalWrite(motor2Pin1, HIGH);
+  digitalWrite(motor2Pin2, LOW);
+}
+
+void turnRight(int duration) {
+  Serial.println("turning to the right");
+  analogWrite(EN_A, motorSpeedLeft);
+  analogWrite(EN_B, motorSpeedRight);
+  digitalWrite(motor1Pin1, HIGH);
+  digitalWrite(motor1Pin2, LOW);
+  digitalWrite(motor2Pin1, LOW);
+  digitalWrite(motor2Pin2, HIGH);
+  delay(duration);
+  stopMotors();
+  dir += 1;
+  if (dir == 5) {
+    dir = 1;
+  }
+}
+
+void turnLeft(int duration) {
+  Serial.println("turning to the left");
+  analogWrite(EN_A, motorSpeedLeft);
+  analogWrite(EN_B, motorSpeedRight);
+  digitalWrite(motor1Pin1, LOW);
+  digitalWrite(motor1Pin2, HIGH);
+  digitalWrite(motor2Pin1, HIGH);
+  digitalWrite(motor2Pin2, LOW);
+  delay(duration);
+  stopMotors();
+  dir -= 1;
+  if (dir == 0) {
+    dir = 4;
+  }
 }
 
 void stopMotors() {
@@ -172,23 +254,41 @@ void stopMotors() {
     digitalWrite(motor2Pin2, LOW);
 }
 
-// ========== TURNING FUNCTIONS ==========
-void turnLeft() {
-    Serial.println("🔄 Turning Left...");
-    digitalWrite(motor1Pin1, LOW);
-    digitalWrite(motor1Pin2, HIGH);
-    digitalWrite(motor2Pin1, HIGH);
-    digitalWrite(motor2Pin2, LOW);
-    delay(700);  // Adjust delay for accurate 90-degree turn
+// ========== COLOR DETECTION FUNCTIONS ==========
+int getColorReading(int s2State, int s3State) {
+    digitalWrite(S2, s2State);
+    digitalWrite(S3, s3State);
+    delay(25);
+    return pulseIn(sensorOut, LOW);
 }
 
-void turnRight() {
-    Serial.println("🔄 Turning Right...");
-    digitalWrite(motor1Pin1, HIGH);
-    digitalWrite(motor1Pin2, LOW);
-    digitalWrite(motor2Pin1, LOW);
-    digitalWrite(motor2Pin2, HIGH);
-    delay(700);  // Adjust delay for accurate 90-degree turn
+// ========== IMPROVED COLOR CLASSIFICATION ==========
+String identifyColor(int r, int g, int b) {
+    Serial.print("Processing Color -> R: ");
+    Serial.print(r);
+    Serial.print(" G: ");
+    Serial.print(g);
+    Serial.print(" B: ");
+    // Serial.println(b);
+
+    // // Check for BLACK (all values are low)
+    // if (r > 300 && g > 300 && b > 300) return "BLACK";
+
+    // Check for dominant color
+    if (r < g - 50 && r < b - 50) {
+      Serial.print("r");
+      return "RED";
+    }
+    if (g < r - 15 && g < b - 15) {
+      Serial.print("G");
+      return "GREEN";
+    }
+    if (b < r - 25 && b < g - 25) {
+      Serial.print("B");
+      return "BLUE";
+    }
+
+    return "BLACK";  // Default to BLACK if no dominant color
 }
 
 // ========== WALL DETECTION FUNCTIONS ==========
@@ -212,68 +312,12 @@ float getWallDistance() {
     return distance;
 }
 
-// ========== COLOR DETECTION FUNCTIONS ==========
-int getColorReading(int s2State, int s3State) {
-    digitalWrite(S2, s2State);
-    digitalWrite(S3, s3State);
-    delay(25);
-    return pulseIn(sensorOut, LOW);
-}
-
 // ========== LED FUNCTION ==========
 void blinkLED() {
-    Serial.println("💡 LED Blinking!");
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(500);
-    digitalWrite(LED_BUILTIN, LOW);
-}
-
-
-String identifyColor(int r, int g, int b) {
-    Serial.print("Processing Color -> R: ");
-    Serial.print(r);
-    Serial.print(" G: ");
-    Serial.print(g);
-    Serial.print(" B: ");
-    Serial.println(b);
-
-    // Check for BLACK (all values are low)
-    if (r < 300 && g < 300 && b < 300) return "BLACK";
-
-    // Check for dominant color
-    if (r > g + 50 && r > b + 50) return "GREEN";
-    if (g > r + 50 && g > b + 50) return "BLUE";
-    if (b > r + 50 && b > g + 50) return "RED";
-
-    return "BLACK";  // Default to BLACK if no dominant color
-}
-
-String getStableColor() {
-    int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
-
-    // Count occurrences of each color in the queue
-    for (int i = 0; i < QUEUE_SIZE; i++) {
-        if (colorQueue[i] == "RED") redCount++;
-        else if (colorQueue[i] == "GREEN") greenCount++;
-        else if (colorQueue[i] == "BLUE") blueCount++;
-        else if (colorQueue[i] == "BLACK") blackCount++;
-    }
-
-    // Print occurrences for debugging
-    Serial.print("Color Counts -> R: ");
-    Serial.print(redCount);
-    Serial.print(" G: ");
-    Serial.print(greenCount);
-    Serial.print(" B: ");
-    Serial.print(blueCount);
-    Serial.print(" Black: ");
-    Serial.println(blackCount);
-
-    // Return the most frequent color (only if it appears in at least 50% of the queue)
-    int majorityThreshold = QUEUE_SIZE / 2;
-    
-    if (redCount > majorityThreshold) return "GREEN";
-    if (greenCount > majorityThreshold) return "BLUE";
-    if (blueCount > majorityThreshold) return "RED";
-    return "BLACK";  // Default to BLACK if no majority
+  stopMotors();
+  Serial.println("💡 LED Blinking!");
+  digitalWrite(LED_PIN, HIGH);
+  delay(1000);
+  digitalWrite(LED_PIN, LOW);
+  moveForward();
 }

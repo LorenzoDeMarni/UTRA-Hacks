@@ -13,38 +13,34 @@ Servo myServo;  // Create Servo object
 #define EN_A 11  // PWM speed control for right motor
 
 // ========== MOTOR SPEED CONFIGURATION ==========
-int motorSpeedLeft = 145;  
-int motorSpeedRight = 150;
+int motorSpeedLeft = 80;  
+int motorSpeedRight = 80;
 
 // ========== COLOR SENSOR PIN DEFINITIONS ==========
-#define S0 2  // Frequency scaling pin
-#define S1 3  // Frequency scaling pin
-#define S2 5  // Color select pin
-#define S3 4  // Color select pin
-#define sensorOut 12  // Output pin for color sensor frequency signal
+#define S0 2  
+#define S1 3  
+#define S2 5  
+#define S3 4  
+#define sensorOut 12  
 
 int red = 0, green = 0, blue = 0;
 
-// Circular queue for last detected colors
-#define QUEUE_SIZE 7
-String colorQueue[QUEUE_SIZE];  
-int colorIndex = 0;
+// ========== COLOR NAVIGATION VARIABLES ==========
+String currentColor = "BLACK";
+String previousColor = "BLACK";
+int detectedRings = 0;
+bool reachedCenter = false;
+bool right = false;
 
-// ========== TURN AND TIMER CONFIGURATION ==========
-#define turn_value 750  // Delay time for turning (adjust for accuracy)
-
-unsigned long startTime = 0;  
-unsigned long stopTime = 0;   
-bool timerRunning = false;  
-
-int sequence = 0;
-String stableColor = "BLACK";
-String detectedColor = "BLACK";
-int counter=0;
-
+// ========== MOVEMENT CONFIGURATION ==========
+#define turn_value 800  // Adjust turn time for accuracy
+#define adjust_angle 500  // Increased small angle adjustment
+#define move_forward_distance 1600  // Increased forward movement distance
+#define reverse_distance 1200  // Increased reverse distance
 
 void setup() {
     delay(5000);
+    
     // Set motor control pins as outputs
     pinMode(EN_A, OUTPUT);
     pinMode(motor1Pin1, OUTPUT);
@@ -66,59 +62,79 @@ void setup() {
     myServo.write(100); 
     delay(2000);
 
-    myServo.write(150);
+    myServo.write(180);
     delay(4000);
 
-
     Serial.begin(9600);
-
-    // Initialize color queue
-    for (int i = 0; i < QUEUE_SIZE; i++) {
-        colorQueue[i] = "BLACK";
-    }
-    Serial.println("Initial reverse and move forward");
-
+    Serial.println("Starting Challenge...");
     moveForward();
-    //______TEST_____
-    
-    //________________
-    Serial.println("Setup Done");
-
-
 }
 
 void loop() {   
-    // Read color values
-    
-    red = getColorReading(LOW, LOW); // Read Red
-    green = getColorReading(HIGH, HIGH); // Read Green
-    blue = getColorReading(LOW, HIGH); // Read Blue
+    if (reachedCenter) return;
 
-    
-    String colorNew = identifyColor(red, green, blue);
+    red = getColorReading(LOW, LOW);  
+    green = getColorReading(HIGH, HIGH);
+    blue = getColorReading(LOW, HIGH);
 
-    while (colorNew == "BLACK" || colorNew == stableColor) {
-        turnLeft();
+    String detectedColor = identifyColor(red, green, blue);
+
+    Serial.print("Detected Color: ");
+    Serial.println(detectedColor);
+
+    if (detectedColor != "BLACK" && detectedColor != currentColor) {
+        // If we move to a new color, update tracking
+        previousColor = currentColor;
+        currentColor = detectedColor;
+        detectedRings++;
+
+        Serial.print("New Color Detected: ");
+        Serial.println(currentColor);
+        Serial.print("Total Rings Passed: ");
+        Serial.println(detectedRings);
+    }
+
+    if (detectedRings >= 5) {
+        Serial.println("🚀 Reached the Center! Dropping Flag.");
+        stopMotors();
+        myServo.write(100);
+        delay(1000);
+        reachedCenter = true;
+        return;
+    }
+
+    if (detectedColor == currentColor) {
+        // If robot keeps seeing the same color, adjust slightly and move forward further
+        Serial.println("⚠️ Adjusting to find next color...");
+
+        if (right) turnRightSmall();
+        else turnLeftSmall();
         moveForward();
-        delay(500);
     }
 
-    if(counter == 5) {
-        dropFlag();
-        while(true);
-    }
-    stableColor = colorNew;
-    counter++;
+    if (detectedColor == previousColor) {
+        Serial.println("⚠️ Moved Backwards! Turning Around...");
+        right = -right;
+        stopMotors(); 
+        delay(500);  // Small pause before changing direction
 
-    
+        reverseMotors(reverse_distance / 2);  // Move back a little to clear ring
+
+        if (right){
+           turnRight();
+           turnRight();  
+           }// Two right turns (180-degree turn)
+        else {
+          turnLeft();
+           turnLeft();\
+        }
+        moveForward();  // Continue in the new direction
+    }
+
+    moveForward();
 }
-void dropFlag() {
-    myServo.write(100); //opnes claws
-}
+
 // ========== COLOR DETECTION FUNCTIONS ==========
-
-
-
 int getColorReading(int s2State, int s3State) {
     digitalWrite(S2, s2State);
     digitalWrite(S3, s3State);
@@ -134,62 +150,13 @@ String identifyColor(int r, int g, int b) {
     Serial.print(" B: ");
     Serial.println(b);
 
-    // Threshold to determine black
-    int blackThreshold = 300;
+    if (g < r - 25 && g < b - 25) return "GREEN";
+    if (r < g - 400 && r < b - 400) return "RED";
+    if (b < r - 200 && b < g - 200) return "BLUE";
 
-    if (r < blackThreshold && g < blackThreshold && b < blackThreshold) {
-        return "BLACK";  // All low values mean black
-    }
-
-    // Set dominance margin
-    int dominanceMargin = 200;  // Adjust this based on sensor accuracy
-
-    // Determine the dominant color
-    if (g < r - 25 && g < b - 25) {
-      Serial.print("GREEM");
-        return "GREEN";
-    }
-     if (r < g - 400 && r < b - 400) {
-      Serial.print("RED");
-        return "RED";
-    }
-    if (b < r - dominanceMargin && b < g - dominanceMargin) {
-      Serial.print("BLUE");
-        return "BLUE";
-    }
-    Serial.print("black");
-    return "BLACK";  // Default to black if no strong dominance
+    return "BLACK";  // Default to BLACK if no dominant color
 }
 
-String getStableColor() {
-    int redCount = 0, greenCount = 0, blueCount = 0, blackCount = 0;
-
-    // Count occurrences of each color in the queue
-    for (int i = 0; i < QUEUE_SIZE; i++) {
-        if (colorQueue[i] == "RED") redCount++;
-        else if (colorQueue[i] == "GREEN") greenCount++;
-        else if (colorQueue[i] == "BLUE") blueCount++;
-        else if (colorQueue[i] == "BLACK") blackCount++;
-    }
-
-    // Print occurrences for debugging
-    Serial.print("Color Counts -> R: ");
-    Serial.print(redCount);
-    Serial.print(" G: ");
-    Serial.print(greenCount);
-    Serial.print(" B: ");
-    Serial.print(blueCount);
-    Serial.print(" Black: ");
-    Serial.println(blackCount);
-
-    // Return the most frequent color (only if it appears in at least 50% of the queue)
-    int majorityThreshold = QUEUE_SIZE / 2;
-    
-    if (redCount > majorityThreshold) return "GREEN";
-    if (greenCount > majorityThreshold) return "BLUE";
-    if (blueCount > majorityThreshold) return "RED";
-    return "BLACK";  // Default to BLACK if no majority
-}
 // ========== MOVEMENT FUNCTIONS ==========
 void moveForward() {
     Serial.println("Moving Forward...");
@@ -199,6 +166,7 @@ void moveForward() {
     digitalWrite(motor1Pin2, LOW);
     digitalWrite(motor2Pin1, HIGH);
     digitalWrite(motor2Pin2, LOW);
+    delay(move_forward_distance);
 }
 
 void stopMotors() {
@@ -233,14 +201,42 @@ void turnLeft() {
     stopMotors();
 }
 
+void turnLeftSmall() {
+    Serial.println("Adjusting Left Slightly...");
+    analogWrite(EN_A, motorSpeedLeft);
+    analogWrite(EN_B, motorSpeedRight);
+    digitalWrite(motor1Pin1, LOW);
+    digitalWrite(motor1Pin2, HIGH);
+    digitalWrite(motor2Pin1, HIGH);
+    digitalWrite(motor2Pin2, LOW);
+    delay(adjust_angle);
+    stopMotors();
+}
+
+void turnRightSmall() {
+    Serial.println("Adjusting Right Slightly...");
+    
+    // Make a small right turn by moving one motor backward slightly
+    analogWrite(EN_A, motorSpeedLeft);  // Left motor moves forward
+    analogWrite(EN_B, motorSpeedRight / 2);  // Right motor moves slower for a slight turn
+
+    digitalWrite(motor2Pin1, LOW);
+    digitalWrite(motor2Pin2, HIGH);  // Right motor moves backward
+    digitalWrite(motor1Pin1, HIGH);
+    digitalWrite(motor1Pin2, LOW);  // Left motor moves forward
+
+    delay(adjust_angle*2);  // Shorter duration for a small adjustment
+    stopMotors();
+}
+
 void turnRight() {
-    Serial.println("Turning Left...");
+    Serial.println("Turning Right...");
     analogWrite(EN_A, motorSpeedLeft);
     analogWrite(EN_B, motorSpeedRight);
     digitalWrite(motor2Pin1, LOW);
     digitalWrite(motor2Pin2, HIGH);
     digitalWrite(motor1Pin1, HIGH);
     digitalWrite(motor1Pin2, LOW);
-    delay(turn_value);
+    delay(turn_value*2);
     stopMotors();
 }
