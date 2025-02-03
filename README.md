@@ -1,1 +1,1 @@
-ULTRA Hacks 2025 files for prototype rover, featuring colour pattern recognition and maze navigation algorithms. 
+UTRA Hacks 2025 files for rover final design, featuring colour pattern recognition and maze navigation algorithms. 
