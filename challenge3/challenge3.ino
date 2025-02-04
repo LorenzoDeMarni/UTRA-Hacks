@@ -7,11 +7,11 @@ const int IN4 = 6;   // Left motor backward
 const int EN_B = 10; // Left motor speed control
 
 // Color sensor pins
-#define S0 4
-#define S1 5
-#define S2 6
-#define S3 7
-#define sensorOut 8
+#define S0 2
+#define S1 3
+#define S2 4
+#define S3 5
+#define sensorOut 12
 
 // LED for feedback
 #define LED 13
